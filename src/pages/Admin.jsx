@@ -11,6 +11,8 @@ const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [lastShared, setLastShared] = useState(null);
   const [heatmap, setHeatmap] = useState({});
+  const [heatmapFilter, setHeatmapFilter] = useState('all');
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   
   const [appForm, setAppForm] = useState({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '' });
   const [appEditId, setAppEditId] = useState(null);
@@ -136,7 +138,7 @@ const Admin = () => {
       fetch(`${apiUrl}/users`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldUsername: userEditOldUsername, newUsername: newUserForm.username, newPassword: newUserForm.password })
+        body: JSON.stringify({ oldUsername: userEditOldUsername, newUsername: newUserForm.username, newPassword: newUserForm.password, role: newUserForm.role })
       })
       .then(r => r.json())
       .then(data => {
@@ -158,7 +160,7 @@ const Admin = () => {
       fetch(`${apiUrl}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newUsername: newUserForm.username, newPassword: newUserForm.password })
+        body: JSON.stringify({ newUsername: newUserForm.username, newPassword: newUserForm.password, role: newUserForm.role })
       })
       .then(r => r.json())
       .then(data => {
@@ -190,7 +192,7 @@ const Admin = () => {
 
   const handleUserEdit = (u) => {
     setUserEditOldUsername(u.username);
-    setNewUserForm({ username: u.username, password: '' });
+    setNewUserForm({ username: u.username, password: '', role: u.role || 'user' });
   };
 
   const sendWhatsApp = (u, p) => {
@@ -331,7 +333,11 @@ const Admin = () => {
           <div className="glass-panel" style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <input placeholder="Kullanıcı Adı" value={newUserForm.username} onChange={e => setNewUserForm({...newUserForm, username: e.target.value})} style={{...inputStyle, flex: 1}} />
-                <input placeholder={userEditOldUsername ? "Yeni Şifre (Değişmeyecekse boş bırakın)" : "Şifre Belirleyin"} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} style={{...inputStyle, flex: 1}} />
+                <input placeholder={userEditOldUsername ? "Yeni Şifre (Değişmeyecekse boş)" : "Şifre Belirleyin"} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} style={{...inputStyle, flex: 1}} />
+                <select value={newUserForm.role || 'user'} onChange={e => setNewUserForm({...newUserForm, role: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer'}}>
+                  <option value="user">Kullanıcı (Sadece Dashboard)</option>
+                  <option value="admin">Süper Admin</option>
+                </select>
                 <button onClick={handleUserSubmit} style={btnStyle} className="hover-pulse">
                 {userEditOldUsername ? '💾 GÜNCELLE' : '➕ KULLANICI OLUŞTUR'}
                 </button>
@@ -382,14 +388,64 @@ const Admin = () => {
               ⏳ {new Date(heatmap.startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} tarihinden itibaren kaydediliyor.
             </p>
           )}
+
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <button onClick={() => setHeatmapFilter('all')} style={{ ...btnStyle, background: heatmapFilter === 'all' ? 'rgba(0,229,200,0.2)' : 'transparent' }}>TÜM ZAMANLAR</button>
+            <button onClick={() => setHeatmapFilter('today')} style={{ ...btnStyle, background: heatmapFilter === 'today' ? 'rgba(0,229,200,0.2)' : 'transparent' }}>BUGÜN</button>
+            <button onClick={() => setHeatmapFilter('week')} style={{ ...btnStyle, background: heatmapFilter === 'week' ? 'rgba(0,229,200,0.2)' : 'transparent' }}>BU HAFTA</button>
+            <button onClick={() => setHeatmapFilter('month')} style={{ ...btnStyle, background: heatmapFilter === 'month' ? 'rgba(0,229,200,0.2)' : 'transparent' }}>BU AY</button>
+            <button onClick={() => setHeatmapFilter('custom')} style={{ ...btnStyle, background: heatmapFilter === 'custom' ? 'rgba(0,229,200,0.2)' : 'transparent' }}>ÖZEL TARİH</button>
+          </div>
+          
+          {heatmapFilter === 'custom' && (
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+              <input type="date" value={customDateRange.start} onChange={e => setCustomDateRange({...customDateRange, start: e.target.value})} style={inputStyle} />
+              <input type="date" value={customDateRange.end} onChange={e => setCustomDateRange({...customDateRange, end: e.target.value})} style={inputStyle} />
+            </div>
+          )}
+
           <div style={{ display: 'grid', gap: '10px' }}>
-            {(!heatmap.clicks || Object.keys(heatmap.clicks).length === 0) ? (
-              <p style={{ color: 'var(--text-muted)' }}>Henüz tıklama verisi yok.</p>
-            ) : (
-              Object.entries(heatmap.clicks).sort((a,b) => b[1] - a[1]).map(([linkId, count]) => {
+            {(() => {
+              let filteredClicks = {};
+              if (heatmap.history) {
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                
+                const getStartOfWeek = () => {
+                  const d = new Date();
+                  const day = d.getDay() || 7; 
+                  d.setDate(d.getDate() - day + 1);
+                  return d.toISOString().split('T')[0];
+                };
+                
+                const getStartOfMonth = () => {
+                  return todayStr.substring(0, 8) + '01';
+                };
+
+                for (const [appId, dates] of Object.entries(heatmap.history)) {
+                  let sum = 0;
+                  for (const [date, count] of Object.entries(dates)) {
+                    let include = false;
+                    if (heatmapFilter === 'all') include = true;
+                    else if (heatmapFilter === 'today' && date === todayStr) include = true;
+                    else if (heatmapFilter === 'week' && date >= getStartOfWeek() && date <= todayStr) include = true;
+                    else if (heatmapFilter === 'month' && date >= getStartOfMonth() && date <= todayStr) include = true;
+                    else if (heatmapFilter === 'custom' && customDateRange.start && customDateRange.end && date >= customDateRange.start && date <= customDateRange.end) include = true;
+                    
+                    if (include) sum += count;
+                  }
+                  if (sum > 0) filteredClicks[appId] = sum;
+                }
+              }
+
+              if (Object.keys(filteredClicks).length === 0) {
+                return <p style={{ color: 'var(--text-muted)' }}>Bu tarih aralığında veri bulunamadı.</p>;
+              }
+
+              return Object.entries(filteredClicks).sort((a,b) => b[1] - a[1]).map(([linkId, count]) => {
                 const link = links.find(l => l.id === linkId);
                 const title = link ? link.title : 'Silinmiş Servis';
-                const total = Object.values(heatmap.clicks).reduce((acc, c) => acc + c, 0);
+                const total = Object.values(filteredClicks).reduce((acc, c) => acc + c, 0);
                 const pct = ((count / total) * 100).toFixed(1);
                 
                 return (
@@ -403,8 +459,8 @@ const Admin = () => {
                     </div>
                   </div>
                 )
-              })
-            )}
+              });
+            })()}
           </div>
         </div>
       )}

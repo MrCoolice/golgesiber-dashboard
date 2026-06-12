@@ -128,14 +128,15 @@ app.post('/api/login', (req, res) => {
 // Create User Endpoint (Admin Only)
 app.post('/api/users', authenticateToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Sadece admin yetkilidir.' });
-  const { newUsername, newPassword } = req.body;
+  const { newUsername, newPassword, role } = req.body;
   if (!newUsername || !newPassword) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gerekli.' });
   
   const users = getUsers();
   if (users.find(u => u.username === newUsername)) return res.status(400).json({ error: 'Kullanıcı adı zaten var.' });
   
   const passwordHash = crypto.createHash('sha256').update(newPassword).digest('hex');
-  users.push({ username: newUsername, passwordHash, role: 'user' });
+  const userRole = role === 'admin' ? 'admin' : 'user';
+  users.push({ username: newUsername, passwordHash, role: userRole });
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
   
   // Create empty links, tags, preferences and heatmap for new user
@@ -150,7 +151,7 @@ app.post('/api/users', authenticateToken, (req, res) => {
 // Update User Endpoint (Admin Only)
 app.put('/api/users', authenticateToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Sadece admin yetkilidir.' });
-  const { oldUsername, newUsername, newPassword } = req.body;
+  const { oldUsername, newUsername, newPassword, role } = req.body;
   if (!oldUsername || !newUsername) return res.status(400).json({ error: 'Gerekli alanlar eksik.' });
   
   const users = getUsers();
@@ -162,6 +163,9 @@ app.put('/api/users', authenticateToken, (req, res) => {
   }
   
   users[userIndex].username = newUsername;
+  if (role) {
+    users[userIndex].role = role === 'admin' ? 'admin' : 'user';
+  }
   if (newPassword) {
     users[userIndex].passwordHash = crypto.createHash('sha256').update(newPassword).digest('hex');
   }
@@ -365,16 +369,27 @@ app.get('/api/heatmap', authenticateToken, (req, res) => {
   const hFile = getHeatmapFile(req.user.username);
   fs.readFile(hFile, 'utf8', (err, data) => {
     if (err) {
-      if (err.code === 'ENOENT') return res.json({ startDate: new Date().toISOString(), clicks: {} });
+      if (err.code === 'ENOENT') return res.json({ startDate: new Date().toISOString(), history: {} });
       return res.status(500).json({ error: 'Failed to read data' });
     }
     try { 
       let heatmap = JSON.parse(data); 
-      if (!heatmap.startDate && !heatmap.clicks) {
-        heatmap = { startDate: new Date().toISOString(), clicks: heatmap };
+      // Migration from single clicks object to daily history
+      if (heatmap.clicks && !heatmap.history) {
+        heatmap.history = {};
+        const start = heatmap.startDate ? new Date(heatmap.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+        for (const [appId, count] of Object.entries(heatmap.clicks)) {
+          heatmap.history[appId] = { [start]: count };
+        }
+        delete heatmap.clicks;
+      }
+      if (!heatmap.startDate && !heatmap.history && !heatmap.clicks) {
+        heatmap = { startDate: new Date().toISOString(), history: {} };
+      } else if (!heatmap.history) {
+        heatmap.history = {};
       }
       res.json(heatmap);
-    } catch (e) { res.json({ startDate: new Date().toISOString(), clicks: {} }); }
+    } catch (e) { res.json({ startDate: new Date().toISOString(), history: {} }); }
   });
 });
 
@@ -382,19 +397,38 @@ app.post('/api/heatmap', authenticateToken, (req, res) => {
   const { id } = req.body;
   if (!id) return res.status(400).json({ error: 'ID gerekli' });
   const hFile = getHeatmapFile(req.user.username);
-  let heatmap = { startDate: new Date().toISOString(), clicks: {} };
+  let heatmap = { startDate: new Date().toISOString(), history: {} };
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  
   if (fs.existsSync(hFile)) {
     try { 
       const parsed = JSON.parse(fs.readFileSync(hFile, 'utf8')); 
-      if (!parsed.startDate && !parsed.clicks) {
-        heatmap.clicks = parsed;
+      
+      // Migrate old data on the fly
+      if (parsed.clicks && !parsed.history) {
+        parsed.history = {};
+        const start = parsed.startDate ? new Date(parsed.startDate).toISOString().split('T')[0] : today;
+        for (const [appId, count] of Object.entries(parsed.clicks)) {
+          parsed.history[appId] = { [start]: count };
+        }
+        delete parsed.clicks;
+      }
+      
+      if (!parsed.startDate && !parsed.history) {
+        heatmap.history = {};
+        for (const [appId, count] of Object.entries(parsed)) {
+          heatmap.history[appId] = { [today]: count };
+        }
       } else {
         heatmap = parsed;
       }
     } catch (e) {}
   }
-  if (!heatmap.clicks) heatmap.clicks = {};
-  heatmap.clicks[id] = (heatmap.clicks[id] || 0) + 1;
+  
+  if (!heatmap.history) heatmap.history = {};
+  if (!heatmap.history[id]) heatmap.history[id] = {};
+  heatmap.history[id][today] = (heatmap.history[id][today] || 0) + 1;
+  
   fs.writeFileSync(hFile, JSON.stringify(heatmap, null, 2), 'utf8');
   res.json({ success: true });
 });

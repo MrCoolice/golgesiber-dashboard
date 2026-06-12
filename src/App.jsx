@@ -10,7 +10,7 @@ import HackerQuotes from './components/HackerQuotes';
 import './index.css';
 import './index.css';
 
-const Sidebar = ({ handleLogout }) => {
+const Sidebar = ({ handleLogout, userRole }) => {
   const location = useLocation();
   
   const navItems = [
@@ -56,12 +56,14 @@ const Sidebar = ({ handleLogout }) => {
       </div>
 
       <div className="sidebar-bottom" style={{ marginTop: 'auto', marginBottom: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
-        <Link to="/admin" style={{
-            color: location.pathname === '/admin' ? 'var(--neon-green)' : 'var(--text-muted)',
-            padding: '12px'
-        }} title="Admin Panel">
-          <Settings size={24} />
-        </Link>
+        {userRole === 'admin' && (
+          <Link to="/admin" style={{
+              color: location.pathname === '/admin' ? 'var(--neon-green)' : 'var(--text-muted)',
+              padding: '12px'
+          }} title="Admin Panel">
+            <Settings size={24} />
+          </Link>
+        )}
         <div style={{ cursor: 'pointer', padding: '12px', color: 'var(--neon-red)' }} title="Çıkış Yap" onClick={handleLogout}>
           <LogOut size={24} />
         </div>
@@ -142,11 +144,13 @@ const App = () => {
         theme={preferences.theme} 
       />
       <div style={{ display: 'flex', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
-        <Sidebar handleLogout={handleLogout} />
+        <Sidebar handleLogout={handleLogout} userRole={auth.user.role} />
         <div className="main-content" style={{ marginLeft: '80px', flex: 1, padding: '20px' }}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/admin" element={<Admin />} />
+            {auth.user.role === 'admin' && (
+              <Route path="/admin" element={<Admin />} />
+            )}
           </Routes>
         </div>
       </div>
