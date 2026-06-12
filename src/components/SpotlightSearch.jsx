@@ -157,10 +157,14 @@ const SpotlightSearch = ({ isOpen, onClose, links, theme }) => {
                   }}
                 >
                   <img 
-                    src={link.icon.startsWith('/') ? link.icon : `/icons/${link.icon}`} 
+                    src={link.icon.startsWith('http') ? link.icon : `http://${window.location.hostname}:3001${link.icon.startsWith('/') ? '' : '/'}${link.icon}`} 
                     alt={link.title} 
                     style={{ width: '24px', height: '24px', marginRight: '16px', borderRadius: '4px' }}
-                    onError={(e) => { e.target.src = '/icons/default.svg'; }}
+                    onError={(e) => { 
+                      if (e.target.dataset.failed) return;
+                      e.target.dataset.failed = true;
+                      e.target.style.display = 'none'; 
+                    }}
                   />
                   <div style={{ flex: 1 }}>
                     <div style={{ color: theme === 'light' ? '#0f172a' : '#f8fafc', fontWeight: 500 }}>

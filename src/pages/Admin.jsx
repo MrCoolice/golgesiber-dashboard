@@ -253,7 +253,16 @@ const Admin = () => {
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.3)', padding: '5px 10px', borderRadius: '5px', border: '1px solid var(--border-cyan)' }}>
                 {appForm.icon ? (
-                  <img src={`${backendUrl}${appForm.icon}`} alt="icon" style={{ width: '32px', height: '32px', borderRadius: '5px' }} />
+                  <img 
+                    src={appForm.icon.startsWith('http') ? appForm.icon : `${backendUrl}${appForm.icon.startsWith('/') ? '' : '/'}${appForm.icon}`} 
+                    alt="icon" 
+                    style={{ width: '32px', height: '32px', borderRadius: '5px' }} 
+                    onError={(e) => { 
+                      if (e.target.dataset.failed) return;
+                      e.target.dataset.failed = true;
+                      e.target.style.display = 'none'; 
+                    }}
+                  />
                 ) : (
                   <div style={{ width: '32px', height: '32px', background: 'var(--border-cyan)', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>İKON</div>
                 )}
@@ -282,7 +291,16 @@ const Admin = () => {
               <div key={link.id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderLeft: `5px solid ${link.colour !== '#161b1f' ? link.colour : 'var(--neon-cyan)'}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   {link.icon ? (
-                    <img src={`${backendUrl}${link.icon}`} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'contain', background: 'rgba(255,255,255,0.05)' }} />
+                    <img 
+                      src={link.icon.startsWith('http') ? link.icon : `${backendUrl}${link.icon.startsWith('/') ? '' : '/'}${link.icon}`} 
+                      alt="" 
+                      style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'contain', background: 'rgba(255,255,255,0.05)' }} 
+                      onError={(e) => { 
+                        if (e.target.dataset.failed) return;
+                        e.target.dataset.failed = true;
+                        e.target.style.display = 'none'; 
+                      }}
+                    />
                   ) : (
                     <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: link.colour !== '#161b1f' ? link.colour : 'rgba(0,229,200,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', fontWeight: 'bold' }}>
                       {link.title.substring(0, 2).toUpperCase()}

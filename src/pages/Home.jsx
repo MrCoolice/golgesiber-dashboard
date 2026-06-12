@@ -51,8 +51,16 @@ const SortableLinkCard = ({ link, backendUrl, onPingHeatmap }) => {
         <div className="glass-panel glow-card" style={{ height: '100%', cursor: 'grab', display: 'flex', flexDirection: 'column', padding: '15px' }}>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
             {link.icon ? (
-                <img src={link.icon.startsWith('/') ? link.icon : `${backendUrl}/icons/${link.icon}`} alt="icon" style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} 
-                onError={(e) => { e.target.src = '/icons/default.svg'; }} />
+                <img 
+                  src={link.icon.startsWith('http') ? link.icon : `${backendUrl}${link.icon.startsWith('/') ? '' : '/'}${link.icon}`} 
+                  alt="icon" 
+                  style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'contain', background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} 
+                  onError={(e) => { 
+                    if (e.target.dataset.failed) return;
+                    e.target.dataset.failed = true;
+                    e.target.style.display = 'none'; 
+                  }} 
+                />
             ) : (
                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: link.colour !== '#161b1f' ? link.colour : 'rgba(0,229,200,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', fontWeight: 'bold', fontSize: '18px', flexShrink: 0 }}>
                     {link.title.substring(0, 2).toUpperCase()}
