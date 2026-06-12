@@ -44,7 +44,7 @@ const HackerQuotes = ({ preferences }) => {
   return (
     <div style={{
       position: 'fixed',
-      bottom: '20px',
+      top: '20px',
       right: '30px',
       maxWidth: '350px',
       zIndex: 50,
@@ -54,7 +54,7 @@ const HackerQuotes = ({ preferences }) => {
       <AnimatePresence>
         {isVisible && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5 }}
@@ -70,16 +70,17 @@ const HackerQuotes = ({ preferences }) => {
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}
           >
-            <Terminal size={16} color={preferences.theme === 'light' ? '#3b82f6' : '#10b981'} style={{ marginTop: '2px' }} />
+            <Terminal size={16} color={preferences.theme === 'light' ? '#3b82f6' : '#10b981'} style={{ marginTop: '2px', flexShrink: 0 }} />
             <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 2, ease: "linear" }}
-              style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1 }}
+              style={{ overflow: 'hidden' }}
             >
               <span style={{ 
                 color: preferences.theme === 'light' ? '#334155' : '#10b981',
-                fontSize: '0.85rem'
+                fontSize: '0.85rem',
+                lineHeight: '1.4'
               }}>
                 {quote}
               </span>
