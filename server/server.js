@@ -9,10 +9,8 @@ import Parser from 'rss-parser';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import https from 'https';
-import YahooFinance from 'yahoo-finance2';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,7 +18,6 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-const yahooFinance = new YahooFinance();
 const parser = new Parser();
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -51,11 +48,9 @@ app.use(express.json());
 
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
 
-const getPortfolioFile = (username) => path.join(__dirname, 'data', `portfolio_${username}.json`);
 const getLinksFile = (username) => path.join(__dirname, 'data', `links_${username}.json`);
 const getPreferencesFile = (username) => path.join(__dirname, 'data', `preferences_${username}.json`);
 const getTagsFile = (username) => path.join(__dirname, 'data', `tags_${username}.json`);
-const getNetworksFile = (username) => path.join(__dirname, 'data', `networks_${username}.json`);
 const ICONS_DIR = path.join(__dirname, 'public', 'icons');
 
 // Ensure directories exist
@@ -66,12 +61,6 @@ if (!fs.existsSync(path.join(__dirname, 'data'))) {
   fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 }
 
-// Legacy data migration for admin
-const oldPortfolio = path.join(__dirname, 'data', 'portfolio.json');
-const adminPortfolio = getPortfolioFile('admin');
-if (fs.existsSync(oldPortfolio) && !fs.existsSync(adminPortfolio)) {
-  fs.renameSync(oldPortfolio, adminPortfolio);
-}
 
 const oldLinks = path.join(__dirname, 'data', 'links.json');
 const adminLinks = getLinksFile('admin');
@@ -148,12 +137,10 @@ app.post('/api/users', authenticateToken, (req, res) => {
   users.push({ username: newUsername, passwordHash, role: 'user' });
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
   
-  // Create empty portfolio, links, tags, and preferences for new user
-  fs.writeFileSync(getPortfolioFile(newUsername), JSON.stringify([]));
+  // Create empty links, tags, and preferences for new user
   fs.writeFileSync(getLinksFile(newUsername), JSON.stringify([]));
   fs.writeFileSync(getPreferencesFile(newUsername), JSON.stringify({}));
   fs.writeFileSync(getTagsFile(newUsername), JSON.stringify([]));
-  fs.writeFileSync(getNetworksFile(newUsername), JSON.stringify([]));
   
   res.json({ success: true });
 });
@@ -178,12 +165,8 @@ app.put('/api/users', authenticateToken, (req, res) => {
   }
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
   
-  // Rename portfolio file if username changed
+  // Rename files if username changed
   if (newUsername !== oldUsername) {
-    const oldFile = getPortfolioFile(oldUsername);
-    const newFile = getPortfolioFile(newUsername);
-    if (fs.existsSync(oldFile)) fs.renameSync(oldFile, newFile);
-
     const oldLinksF = getLinksFile(oldUsername);
     const newLinksF = getLinksFile(newUsername);
     if (fs.existsSync(oldLinksF)) fs.renameSync(oldLinksF, newLinksF);
@@ -195,10 +178,6 @@ app.put('/api/users', authenticateToken, (req, res) => {
     const oldTagsF = getTagsFile(oldUsername);
     const newTagsF = getTagsFile(newUsername);
     if (fs.existsSync(oldTagsF)) fs.renameSync(oldTagsF, newTagsF);
-
-    const oldNetF = getNetworksFile(oldUsername);
-    const newNetF = getNetworksFile(newUsername);
-    if (fs.existsSync(oldNetF)) fs.renameSync(oldNetF, newNetF);
   }
   
   res.json({ success: true });
@@ -214,9 +193,6 @@ app.delete('/api/users/:username', authenticateToken, (req, res) => {
   users = users.filter(u => u.username !== username);
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
   
-  const pFile = getPortfolioFile(username);
-  if (fs.existsSync(pFile)) fs.unlinkSync(pFile);
-  
   const prefFile = getPreferencesFile(username);
   if (fs.existsSync(prefFile)) fs.unlinkSync(prefFile);
 
@@ -225,9 +201,6 @@ app.delete('/api/users/:username', authenticateToken, (req, res) => {
   
   const tFile = getTagsFile(username);
   if (fs.existsSync(tFile)) fs.unlinkSync(tFile);
-  
-  const nFile = getNetworksFile(username);
-  if (fs.existsSync(nFile)) fs.unlinkSync(nFile);
   
   res.json({ success: true });
 });
@@ -314,246 +287,7 @@ app.post('/api/tags', authenticateToken, (req, res) => {
   });
 });
 
-// Get all networks
-app.get('/api/networks', authenticateToken, (req, res) => {
-  const file = getNetworksFile(req.user.username);
-  fs.readFile(file, 'utf8', (err, data) => {
-    if (err) {
-      if (err.code === 'ENOENT') return res.json([]);
-      return res.status(500).json({ error: 'Failed to read data' });
-    }
-    try { res.json(JSON.parse(data)); } catch (e) { res.json([]); }
-  });
-});
 
-// Save all networks
-app.post('/api/networks', authenticateToken, (req, res) => {
-  const file = getNetworksFile(req.user.username);
-  fs.writeFile(file, JSON.stringify(req.body, null, 2), 'utf8', (err) => {
-    if (err) return res.status(500).json({ error: 'Failed to save data' });
-    res.json({ success: true });
-  });
-});
-
-// --- PORTFOLIO ROUTES ---
-app.get('/api/portfolio', authenticateToken, (req, res) => {
-  const pFile = getPortfolioFile(req.user.username);
-  fs.readFile(pFile, 'utf8', (err, data) => {
-    if (err) {
-      if (err.code === 'ENOENT') return res.json([]);
-      return res.status(500).json({ error: 'Failed to read data' });
-    }
-    try { res.json(JSON.parse(data)); } catch (e) { res.json([]); }
-  });
-});
-
-app.post('/api/portfolio', authenticateToken, (req, res) => {
-  const pFile = getPortfolioFile(req.user.username);
-  fs.writeFile(pFile, JSON.stringify(req.body, null, 2), 'utf8', (err) => {
-    if (err) return res.status(500).json({ error: 'Failed to save data' });
-    res.json({ success: true });
-  });
-});
-
-app.get('/api/preferences', authenticateToken, (req, res) => {
-  const pFile = getPreferencesFile(req.user.username);
-  fs.readFile(pFile, 'utf8', (err, data) => {
-    if (err) {
-      if (err.code === 'ENOENT') return res.json({});
-      return res.status(500).json({ error: 'Failed to read data' });
-    }
-    try { res.json(JSON.parse(data)); } catch (e) { res.json({}); }
-  });
-});
-
-app.post('/api/preferences', authenticateToken, (req, res) => {
-  const pFile = getPreferencesFile(req.user.username);
-  fs.writeFile(pFile, JSON.stringify(req.body, null, 2), 'utf8', (err) => {
-    if (err) return res.status(500).json({ error: 'Failed to save data' });
-    res.json({ success: true });
-  });
-});
-
-const histCache = {};
-
-async function getHistorical(symbol) {
-  const now = Date.now();
-  if (histCache[symbol] && (now - histCache[symbol].timestamp < 3600 * 1000)) {
-    return histCache[symbol].data;
-  }
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  try {
-    const data = await yahooFinance.chart(symbol, { period1: oneYearAgo });
-    const quotes = data && data.quotes ? data.quotes : [];
-    histCache[symbol] = { data: quotes, timestamp: now };
-    return quotes;
-  } catch(e) {
-    console.error(`Hist error for ${symbol}:`, e.message);
-    return [];
-  }
-}
-
-function calcHistPct(history, livePrice, daysAgo) {
-  if (!history || history.length === 0 || livePrice === 0) return null;
-  const targetDate = new Date();
-  targetDate.setDate(targetDate.getDate() - daysAgo);
-  let closest = null;
-  let minDiff = Infinity;
-  for (const item of history) {
-    const diff = Math.abs(item.date - targetDate);
-    if (diff < minDiff) {
-      minDiff = diff;
-      closest = item;
-    }
-  }
-  if (closest && closest.close > 0) {
-    return ((livePrice - closest.close) / closest.close) * 100;
-  }
-  return null;
-}
-
-// --- FINANCE RADAR API ---
-app.get('/api/finance/radar', authenticateToken, async (req, res) => {
-  try {
-    const pFile = getPortfolioFile(req.user.username);
-    const rawData = fs.existsSync(pFile) ? JSON.parse(fs.readFileSync(pFile, 'utf8')) : [];
-    if (!rawData || rawData.length === 0) return res.json([]);
-
-    const groupedData = {};
-    rawData.forEach(item => {
-      const code = item.code;
-      if (!groupedData[code]) {
-        groupedData[code] = {
-          code: code,
-          displayName: item.displayName,
-          totalQuantity: 0,
-          totalCost: 0,
-          targetProfitPct: item.targetProfitPct || 0,
-          stopLossPct: item.stopLossPct || 0
-        };
-      }
-      const qty = item.quantity || 0;
-      groupedData[code].totalQuantity += qty;
-      groupedData[code].totalCost += (qty * item.buyPrice);
-    });
-
-    const data = Object.values(groupedData).map(g => ({
-      ...g,
-      buyPrice: g.totalQuantity > 0 ? (g.totalCost / g.totalQuantity) : 0
-    }));
-
-    const formatSymbol = (code) => {
-      let c = code.toUpperCase().trim().replace(':', '');
-      if (!c.includes('.') && !c.includes('-') && !c.includes('=')) {
-        const cryptos = ['BTC', 'ETH', 'XRP', 'SOL', 'AVAX', 'BNB', 'DOGE', 'ADA', 'TRX'];
-        const fiats = ['USD', 'EUR', 'GBP', 'CHF'];
-        if (cryptos.includes(c)) c += '-USD';
-        else if (fiats.includes(c)) c += 'TRY=X';
-        else c += '.IS';
-      }
-      return c;
-    };
-    const symbols = data.map(item => formatSymbol(item.code));
-    const quotes = await yahooFinance.quote(symbols);
-    const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
-
-    const histDataPromises = symbols.map(sym => getHistorical(sym));
-    const histDataArray = await Promise.all(histDataPromises);
-    const historyMap = {};
-    symbols.forEach((sym, idx) => { historyMap[sym] = histDataArray[idx]; });
-
-    const radarData = data.map(item => {
-      const lookupCode = formatSymbol(item.code);
-      const q = quotesArray.find(quote => quote.symbol === lookupCode);
-      if (!q) return { ...item, livePrice: 0, totalPct: 0, dayPct: 0, status: '- BEKLE' };
-      
-      const livePrice = q.regularMarketPrice || 0;
-      const prevClose = q.regularMarketPreviousClose || livePrice;
-
-      const totalPct = item.buyPrice > 0 ? ((livePrice - item.buyPrice) / item.buyPrice) * 100 : 0;
-      const dayPct = prevClose > 0 ? ((livePrice - prevClose) / prevClose) * 100 : 0;
-      
-      let status = '- BEKLE';
-      if (item.targetProfitPct && totalPct >= item.targetProfitPct) status = '🟢 SAT';
-      else if (item.stopLossPct) {
-        const stopLossValue = item.stopLossPct > 0 ? -item.stopLossPct : item.stopLossPct;
-        if (totalPct <= stopLossValue) status = '🔴 STOP';
-      }
-
-      const history = historyMap[lookupCode] || [];
-      
-      const totalInvestment = item.totalCost || 0;
-      const currentValue = item.totalQuantity > 0 ? (item.totalQuantity * livePrice) : 0;
-      const totalProfitAmount = currentValue - totalInvestment;
-
-      return {
-        ...item,
-        livePrice,
-        totalPct,
-        dayPct,
-        status,
-        currency: q.currency || '',
-        totalInvestment,
-        currentValue,
-        totalProfitAmount,
-        historical: {
-          w1: calcHistPct(history, livePrice, 7),
-          m1: calcHistPct(history, livePrice, 30),
-          m3: calcHistPct(history, livePrice, 90),
-          m6: calcHistPct(history, livePrice, 180),
-          y1: calcHistPct(history, livePrice, 365)
-        }
-      };
-    });
-
-    res.json(radarData);
-  } catch (error) {
-    console.error("Radar Error:", error);
-    res.status(500).json({ error: 'Failed to fetch financial data' });
-  }
-});
-
-app.get('/api/widgets/ipo', authenticateToken, (req, res) => {
-  res.json([
-    { name: 'Koton Mağazacılık (KOTON)', date: '30-31 Mayıs', price: '34.50 TL', demand: 'Yüksek', status: 'Yaklaşıyor' },
-    { name: 'Lila Kağıt (LILAK)', date: '1-2 Haziran', price: '37.39 TL', demand: 'Orta', status: 'Talep Toplanıyor' },
-    { name: 'Altınay Savunma (ALTNY)', date: '5-6 Haziran', price: '32.00 TL', demand: 'Çok Yüksek', status: 'Duyuruldu' }
-  ]);
-});
-
-app.get('/api/widgets/whales', authenticateToken, (req, res) => {
-  res.json([
-    { asset: 'BTC', amount: '2,500', value: '$165M', from: 'Bilinmeyen', to: 'Binance', type: 'Transfer', time: '5 dk önce' },
-    { asset: 'ETH', amount: '15,000', value: '$45M', from: 'Coinbase', to: 'Bilinmeyen', type: 'Çıkış', time: '12 dk önce' },
-    { asset: 'SOL', amount: '500,000', value: '$72M', from: 'Bilinmeyen', to: 'Bilinmeyen', type: 'Transfer', time: '23 dk önce' }
-  ]);
-});
-
-app.get('/api/widgets/osint', authenticateToken, (req, res) => {
-  res.json({
-    companyMentions: 12,
-    darkWebLeaks: 0,
-    status: 'GÜVENLİ',
-    lastScan: new Date().toISOString(),
-    alerts: [
-      { source: 'Telegram (Exploit)', text: 'No matching keywords found.' },
-      { source: 'Twitter', text: 'Brand sentiment is neutral/positive.' }
-    ]
-  });
-});
-
-app.get('/api/widgets/sentiment', authenticateToken, (req, res) => {
-  res.json({
-    index: 74,
-    label: 'AÇGÖZLÜLÜK',
-    trend: 'Yükseliş',
-    tips: [
-      'Piyasada aşırı alım bölgesi gözleniyor, kar alımları (take-profit) değerlendirilebilir.',
-      'Havacılık ve teknoloji hisselerinde sosyal medya etkileşimi son 24 saatte %30 arttı.'
-    ]
-  });
-});
 
 app.get('/api/widgets/rss', authenticateToken, async (req, res) => {
   try {
