@@ -275,6 +275,27 @@ app.post('/api/links', authenticateToken, (req, res) => {
   });
 });
 
+// Get preferences
+app.get('/api/preferences', authenticateToken, (req, res) => {
+  const file = getPreferencesFile(req.user.username);
+  fs.readFile(file, 'utf8', (err, data) => {
+    if (err) {
+      if (err.code === 'ENOENT') return res.json({});
+      return res.status(500).json({ error: 'Failed to read data' });
+    }
+    try { res.json(JSON.parse(data)); } catch (e) { res.json({}); }
+  });
+});
+
+// Save preferences
+app.post('/api/preferences', authenticateToken, (req, res) => {
+  const file = getPreferencesFile(req.user.username);
+  fs.writeFile(file, JSON.stringify(req.body, null, 2), 'utf8', (err) => {
+    if (err) return res.status(500).json({ error: 'Failed to save data' });
+    res.json({ success: true });
+  });
+});
+
 // Get all tags
 app.get('/api/tags', authenticateToken, (req, res) => {
   const file = getTagsFile(req.user.username);
