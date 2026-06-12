@@ -374,17 +374,22 @@ const Admin = () => {
 
       {activeTab === 'heatmap' && (
         <div className="glass-panel" style={{ padding: '20px' }}>
-          <h2 style={{ color: 'var(--text-light)', borderBottom: '1px solid rgba(0,229,200,0.3)', paddingBottom: '10px', marginBottom: '20px' }}>
+          <h2 style={{ color: 'var(--text-light)', borderBottom: '1px solid rgba(0,229,200,0.3)', paddingBottom: '10px', marginBottom: '10px' }}>
             🔥 Kullanım İstatistikleri
           </h2>
+          {heatmap.startDate && (
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>
+              ⏳ {new Date(heatmap.startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} tarihinden itibaren kaydediliyor.
+            </p>
+          )}
           <div style={{ display: 'grid', gap: '10px' }}>
-            {Object.keys(heatmap).length === 0 ? (
+            {(!heatmap.clicks || Object.keys(heatmap.clicks).length === 0) ? (
               <p style={{ color: 'var(--text-muted)' }}>Henüz tıklama verisi yok.</p>
             ) : (
-              Object.entries(heatmap).sort((a,b) => b[1] - a[1]).map(([linkId, count]) => {
+              Object.entries(heatmap.clicks).sort((a,b) => b[1] - a[1]).map(([linkId, count]) => {
                 const link = links.find(l => l.id === linkId);
                 const title = link ? link.title : 'Silinmiş Servis';
-                const total = Object.values(heatmap).reduce((acc, c) => acc + c, 0);
+                const total = Object.values(heatmap.clicks).reduce((acc, c) => acc + c, 0);
                 const pct = ((count / total) * 100).toFixed(1);
                 
                 return (

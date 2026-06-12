@@ -365,10 +365,16 @@ app.get('/api/heatmap', authenticateToken, (req, res) => {
   const hFile = getHeatmapFile(req.user.username);
   fs.readFile(hFile, 'utf8', (err, data) => {
     if (err) {
-      if (err.code === 'ENOENT') return res.json({});
+      if (err.code === 'ENOENT') return res.json({ startDate: new Date().toISOString(), clicks: {} });
       return res.status(500).json({ error: 'Failed to read data' });
     }
-    try { res.json(JSON.parse(data)); } catch (e) { res.json({}); }
+    try { 
+      let heatmap = JSON.parse(data); 
+      if (!heatmap.startDate && !heatmap.clicks) {
+        heatmap = { startDate: new Date().toISOString(), clicks: heatmap };
+      }
+      res.json(heatmap);
+    } catch (e) { res.json({ startDate: new Date().toISOString(), clicks: {} }); }
   });
 });
 
@@ -376,11 +382,19 @@ app.post('/api/heatmap', authenticateToken, (req, res) => {
   const { id } = req.body;
   if (!id) return res.status(400).json({ error: 'ID gerekli' });
   const hFile = getHeatmapFile(req.user.username);
-  let heatmap = {};
+  let heatmap = { startDate: new Date().toISOString(), clicks: {} };
   if (fs.existsSync(hFile)) {
-    try { heatmap = JSON.parse(fs.readFileSync(hFile, 'utf8')); } catch (e) {}
+    try { 
+      const parsed = JSON.parse(fs.readFileSync(hFile, 'utf8')); 
+      if (!parsed.startDate && !parsed.clicks) {
+        heatmap.clicks = parsed;
+      } else {
+        heatmap = parsed;
+      }
+    } catch (e) {}
   }
-  heatmap[id] = (heatmap[id] || 0) + 1;
+  if (!heatmap.clicks) heatmap.clicks = {};
+  heatmap.clicks[id] = (heatmap.clicks[id] || 0) + 1;
   fs.writeFileSync(hFile, JSON.stringify(heatmap, null, 2), 'utf8');
   res.json({ success: true });
 });
