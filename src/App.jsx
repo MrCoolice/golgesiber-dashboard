@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Terminal, Hexagon, Settings, LogOut, Network } from 'lucide-react';
+import { Terminal, Hexagon, Settings, LogOut } from 'lucide-react';
 import Home from './pages/Home';
 import Admin from './pages/Admin';
-import NetworkList from './pages/NetworkList';
 import Login from './pages/Login';
 import './index.css';
 
@@ -11,8 +10,7 @@ const Sidebar = ({ handleLogout }) => {
   const location = useLocation();
   
   const navItems = [
-    { path: '/', icon: <Terminal size={24} />, label: 'Sunucular' },
-    { path: '/network', icon: <Network size={24} />, label: 'Ağ Yönetimi' }
+    { path: '/', icon: <Terminal size={24} />, label: 'Sunucular' }
   ];
 
   return (
@@ -96,7 +94,6 @@ const App = () => {
         <div style={{ marginLeft: '80px', flex: 1, padding: '20px' }}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/network" element={<NetworkList />} />
             <Route path="/admin" element={<Admin />} />
           </Routes>
         </div>

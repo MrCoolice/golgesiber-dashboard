@@ -10,7 +10,6 @@ const Admin = () => {
   const [userEditOldUsername, setUserEditOldUsername] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lastShared, setLastShared] = useState(null);
-  const [preferences, setPreferences] = useState({});
   
   const [appForm, setAppForm] = useState({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '' });
   const [appEditId, setAppEditId] = useState(null);
@@ -20,27 +19,12 @@ const Admin = () => {
   const [tagForm, setTagForm] = useState({ title: '', colour: '#161b22' });
   const [tagEditId, setTagEditId] = useState(null);
 
-  const [networks, setNetworks] = useState([]);
-  const [networkForm, setNetworkForm] = useState({ name: '', type: 'lxc', ip: '', vlan: '', status: 'online', subnet: '', subnetRange: '', ports: '', notes: '', os: '' });
-  const [networkEditId, setNetworkEditId] = useState(null);
-  const [networkFormMode, setNetworkFormMode] = useState('device'); // 'device' or 'vlan'
-
   const apiUrl = `http://${window.location.hostname}:3001/api`;
   const backendUrl = `http://${window.location.hostname}:3001`;
 
   useEffect(() => {
     fetch(`${apiUrl}/links`).then(r => r.json()).then(setLinks).catch(e => console.error(e));
     fetch(`${apiUrl}/tags`).then(r => r.json()).then(setTags).catch(e => console.error(e));
-    
-    // Auth required for networks
-    fetch(`${apiUrl}/networks`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('golgeToken')}` }
-    }).then(r => r.json()).then(setNetworks).catch(e => console.error(e));
-    
-    // Preferences
-    fetch(`${apiUrl}/preferences`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('golgeToken')}` }
-    }).then(r => r.json()).then(setPreferences).catch(e => console.error(e));
     
     try {
       const userStr = localStorage.getItem('golgeUser');
@@ -67,10 +51,6 @@ const Admin = () => {
   const saveTags = (newTags) => {
     fetch(`${apiUrl}/tags`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newTags) })
       .then(() => setTags(newTags)).catch(e => alert('Hata: ' + e));
-  };
-  const saveNetworks = (newNetworks) => {
-    fetch(`${apiUrl}/networks`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('golgeToken')}` }, body: JSON.stringify(newNetworks) })
-      .then(() => setNetworks(newNetworks)).catch(e => alert('Hata: ' + e));
   };
 
   // --- ICON HANDLERS ---
@@ -141,40 +121,6 @@ const Admin = () => {
     setTagEditId(tag.id);
   };
 
-  // --- NETWORK HANDLERS ---
-  const handleNetworkSubmit = () => {
-    if (!networkForm.name) return;
-
-    if (networkFormMode === 'device' && networkForm.vlan && networkForm.ip) {
-      const parentVlan = networks.find(n => n.name === networkForm.vlan && n.type === 'vlan');
-      if (parentVlan && parentVlan.subnet) {
-        // Basic check if IP starts with the first 3 octets of subnet
-        const parts = parentVlan.subnet.split('.');
-        if (parts.length === 4) {
-          const subnetPrefix = parts[0] + '.' + parts[1] + '.' + parts[2] + '.';
-          if (!networkForm.ip.startsWith(subnetPrefix)) {
-            alert(`Hata: Girdiğiniz IP adresi (${networkForm.ip}), seçili VLAN'ın subnet'i (${parentVlan.subnet}) ile uyuşmuyor!`);
-            return;
-          }
-        }
-      }
-    }
-
-    if (networkEditId) {
-      saveNetworks(networks.map(n => n.id === networkEditId ? { ...networkForm, id: networkEditId } : n));
-      setNetworkEditId(null);
-    } else {
-      saveNetworks([...networks, { ...networkForm, id: Date.now().toString() }]);
-    }
-    setNetworkForm({ name: '', type: networkFormMode === 'vlan' ? 'vlan' : 'lxc', ip: '', vlan: '', status: 'online', subnet: '', subnetRange: '', ports: '', notes: '', os: '' });
-  };
-  const handleNetworkDelete = (id) => saveNetworks(networks.filter(n => n.id !== id));
-  const handleNetworkEdit = (net) => {
-    setNetworkFormMode(net.type === 'vlan' ? 'vlan' : 'device');
-    setNetworkForm({ name: net.name || '', type: net.type || (net.type === 'vlan' ? 'vlan' : 'lxc'), ip: net.ip || '', vlan: net.vlan || '', status: net.status || 'online', subnet: net.subnet || '', subnetRange: net.subnetRange || '', ports: net.ports || '', notes: net.notes || '', os: net.os || '' });
-    setNetworkEditId(net.id);
-  };
-
   // --- USER HANDLERS ---
   const handleUserSubmit = () => {
     if (!newUserForm.username) return;
@@ -233,36 +179,7 @@ const Admin = () => {
     }
   };
 
-  const handlePrefToggle = (widgetKey) => {
-    const newPrefs = { ...preferences, [widgetKey]: preferences[widgetKey] === undefined ? false : !preferences[widgetKey] };
-    setPreferences(newPrefs);
-    fetch(`${apiUrl}/preferences`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('golgeToken')}` },
-      body: JSON.stringify(newPrefs)
-    });
-  };
 
-  const handleCitySave = (e) => {
-    const newPrefs = { ...preferences, weatherCity: e.target.value };
-    setPreferences(newPrefs);
-    fetch(`${apiUrl}/preferences`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('golgeToken')}` },
-      body: JSON.stringify(newPrefs)
-    }).catch(e => alert('Ayarlar kaydedilemedi: ' + e));
-  };
-
-  const handleRssSave = (e) => {
-    const urls = e.target.value.split('\n').map(u => u.trim()).filter(u => u !== '');
-    const newPrefs = { ...preferences, rssUrls: urls };
-    setPreferences(newPrefs);
-    fetch(`${apiUrl}/preferences`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('golgeToken')}` },
-      body: JSON.stringify(newPrefs)
-    }).catch(e => alert('Ayarlar kaydedilemedi: ' + e));
-  };
 
   const handleUserEdit = (u) => {
     setUserEditOldUsername(u.username);
@@ -284,8 +201,6 @@ const Admin = () => {
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' }}>
         <button onClick={() => setActiveTab('tags')} style={{ ...tabStyle, background: activeTab === 'tags' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'tags' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>🏷️ KATEGORİLER</button>
         <button onClick={() => setActiveTab('apps')} style={{ ...tabStyle, background: activeTab === 'apps' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'apps' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>💻 UYGULAMALAR</button>
-        <button onClick={() => setActiveTab('networks')} style={{ ...tabStyle, background: activeTab === 'networks' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'networks' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>🌐 AĞ YÖNETİMİ</button>
-        <button onClick={() => setActiveTab('widgets')} style={{ ...tabStyle, background: activeTab === 'widgets' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'widgets' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>🧩 WİDGET MARKET</button>
         {isAdmin && <button onClick={() => setActiveTab('users')} style={{ ...tabStyle, background: activeTab === 'users' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'users' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>👥 KULLANICILAR</button>}
       </div>
 
@@ -382,94 +297,7 @@ const Admin = () => {
         </div>
       )}
 
-      {activeTab === 'networks' && (
-        <div>
-          <div className="glass-panel" style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-              <button onClick={() => { setNetworkFormMode('device'); setNetworkForm({...networkForm, type: 'lxc'}); }} style={{ ...btnStyle, flex: 1, borderColor: networkFormMode === 'device' ? 'var(--neon-cyan)' : 'transparent', color: networkFormMode === 'device' ? 'var(--neon-cyan)' : 'var(--text-light)', background: networkFormMode === 'device' ? 'rgba(0,229,200,0.1)' : 'transparent' }}>
-                🖥️ Yeni Cihaz Ekle
-              </button>
-              <button onClick={() => { setNetworkFormMode('vlan'); setNetworkForm({...networkForm, type: 'vlan'}); }} style={{ ...btnStyle, flex: 1, borderColor: networkFormMode === 'vlan' ? '#25D366' : 'transparent', color: networkFormMode === 'vlan' ? '#25D366' : 'var(--text-light)', background: networkFormMode === 'vlan' ? 'rgba(37,211,102,0.1)' : 'transparent' }}>
-                🌐 Yeni VLAN Ekle
-              </button>
-            </div>
 
-            {networkFormMode === 'vlan' ? (
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <input placeholder="VLAN Adı (Örn: Yönetim Ağı)" value={networkForm.name} onChange={e => setNetworkForm({...networkForm, name: e.target.value})} style={{...inputStyle, flex: 2}} />
-                <input placeholder="Subnet (Örn: 10.10.10.0/24)" value={networkForm.subnet} onChange={e => setNetworkForm({...networkForm, subnet: e.target.value})} style={{...inputStyle, flex: 1}} />
-                <input placeholder="IP Range (Örn: 10.10.10.10-100)" value={networkForm.subnetRange} onChange={e => setNetworkForm({...networkForm, subnetRange: e.target.value})} style={{...inputStyle, flex: 1}} />
-                <input placeholder="VLAN ID (Örn: 100)" value={networkForm.vlan} onChange={e => setNetworkForm({...networkForm, vlan: e.target.value})} style={{...inputStyle, flex: 1}} />
-                <input placeholder="Gateway IP" value={networkForm.ip} onChange={e => setNetworkForm({...networkForm, ip: e.target.value})} style={{...inputStyle, flex: 1}} />
-                <select value={networkForm.status} onChange={e => setNetworkForm({...networkForm, status: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer'}}>
-                  <option value="online">Online</option>
-                  <option value="offline">Offline</option>
-                  <option value="warning">Uyarı</option>
-                </select>
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <input placeholder="Cihaz Adı (Örn: OpnSense / 101)" value={networkForm.name} onChange={e => setNetworkForm({...networkForm, name: e.target.value})} style={{...inputStyle, flex: 2}} />
-                  <select value={networkForm.type} onChange={e => setNetworkForm({...networkForm, type: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer'}}>
-                    <option value="lxc">LXC Container</option>
-                    <option value="qemu">QEMU VM</option>
-                    <option value="node">Proxmox Node</option>
-                  </select>
-                  <select value={networkForm.vlan} onChange={e => setNetworkForm({...networkForm, vlan: e.target.value})} style={{...inputStyle, flex: 2, cursor: 'pointer'}}>
-                    <option value="">-- VLAN Seçin --</option>
-                    {networks.filter(n => n.type === 'vlan').map(v => (
-                      <option key={v.id} value={v.name}>{v.name} ({v.subnet})</option>
-                    ))}
-                  </select>
-                  <input placeholder="IP Adresi (Örn: 192.168.1.5)" value={networkForm.ip} onChange={e => setNetworkForm({...networkForm, ip: e.target.value})} style={{...inputStyle, flex: 1}} />
-                </div>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <input placeholder="OS (Örn: Ubuntu, Windows)" value={networkForm.os} onChange={e => setNetworkForm({...networkForm, os: e.target.value})} style={{...inputStyle, flex: 1}} />
-                  <input placeholder="Portlar (Örn: 80, 443)" value={networkForm.ports} onChange={e => setNetworkForm({...networkForm, ports: e.target.value})} style={{...inputStyle, flex: 1}} />
-                  <select value={networkForm.status} onChange={e => setNetworkForm({...networkForm, status: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer'}}>
-                    <option value="online">Online</option>
-                    <option value="offline">Offline</option>
-                    <option value="warning">Uyarı</option>
-                  </select>
-                </div>
-                <textarea placeholder="Notlar..." value={networkForm.notes} onChange={e => setNetworkForm({...networkForm, notes: e.target.value})} style={{...inputStyle, width: '100%', minHeight: '60px'}} />
-              </>
-            )}
-
-            <div style={{ width: '100%', display: 'flex', gap: '10px', marginTop: '10px' }}>
-              <button onClick={handleNetworkSubmit} style={{...btnStyle, minWidth: '120px'}} className="hover-pulse">{networkEditId ? '💾 GÜNCELLE' : '➕ EKLE'}</button>
-              {networkEditId && <button onClick={() => { setNetworkEditId(null); setNetworkForm({ name: '', type: 'lxc', ip: '', vlan: '', status: 'online', subnet: '', subnetRange: '', ports: '', notes: '', os: '' }); }} style={{...btnStyle, color: 'var(--text-muted)', borderColor: 'var(--text-muted)'}}>İPTAL</button>}
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gap: '10px' }}>
-            {networks.map(net => (
-              <div key={net.id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderLeft: `5px solid ${net.status === 'online' ? '#25D366' : net.status === 'warning' ? '#ffcc00' : 'var(--neon-red)'}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(0,229,200,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontSize: '20px' }}>
-                    {net.type === 'vlan' ? '🌐' : net.type === 'qemu' ? '🖥️' : net.type === 'node' ? '🖧' : '📦'}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--text-light)', fontSize: '18px' }}>
-                      {net.name}
-                      <span style={{ marginLeft: '10px', fontSize: '10px', background: 'rgba(255,255,255,0.1)', color: 'var(--text-muted)', padding: '3px 8px', borderRadius: '12px', textTransform: 'uppercase' }}>{net.type}</span>
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '5px' }}>
-                      {net.ip && <span style={{ marginRight: '10px', color: 'var(--neon-green)' }}>IP: {net.ip}</span>}
-                      {net.vlan && <span style={{ color: 'var(--neon-cyan)' }}>VLAN/Tag: {net.vlan}</span>}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => handleNetworkEdit(net)} style={{...btnStyle, borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)'}}>✏️ DÜZENLE</button>
-                    <button onClick={() => handleNetworkDelete(net.id)} style={{...btnStyle, borderColor: 'var(--neon-red)', color: 'var(--neon-red)'}}>🗑️ SİL</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {activeTab === 'users' && isAdmin && (
         <div>
@@ -517,55 +345,7 @@ const Admin = () => {
         </div>
       )}
 
-      {activeTab === 'widgets' && (
-        <div>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Dashboard ana sayfanızda görünmesini istediğiniz modülleri açıp kapatabilirsiniz.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            {[
-              { key: 'ipo', icon: '🏛️', name: 'Halka Arz Takvimi', desc: 'Borsa İstanbul yaklaşan halka arzlar' },
-              { key: 'whales', icon: '🐋', name: 'Kripto Balina Radarı', desc: 'Büyük para transferi alarmları' },
-              { key: 'sentiment', icon: '🤖', name: 'Yapay Zeka Piyasa Analizi', desc: 'Korku/Açgözlülük ve AI Tiyoları' },
-              { key: 'osint', icon: '🕵️‍♂️', name: 'Siber OSINT Monitörü', desc: 'Dark web ve marka sızıntı takibi' },
-              { key: 'rss', icon: '📰', name: 'RSS Güvenlik Bülteni', desc: 'Güncel siber güvenlik haberleri' },
-              { key: 'deface', icon: '🛡️', name: 'Deface & SSL Koruması', desc: 'Sitelerin SSL ve durum denetimi' },
-              { key: 'weather', icon: '🌤️', name: 'Hava Durumu', desc: 'Canlı hava durumu ve sıcaklık' }
-            ].map(w => {
-              const isActive = preferences[w.key] !== false;
-              return (
-              <div key={w.key} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '15px', padding: '20px', borderLeft: `5px solid ${isActive ? '#25D366' : 'var(--border-cyan)'}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '24px' }}>{w.icon}</span>
-                  <strong style={{ color: 'var(--text-light)', fontSize: '18px' }}>{w.name}</strong>
-                </div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, flex: 1 }}>{w.desc}</p>
-                {w.key === 'weather' && (
-                  <input 
-                    type="text" 
-                    placeholder="Şehir (Örn: Istanbul)"
-                    defaultValue={preferences.weatherCity || ''}
-                    onBlur={handleCitySave}
-                    style={{ ...inputStyle, padding: '8px', fontSize: '12px' }}
-                  />
-                )}
-                {w.key === 'rss' && (
-                  <textarea 
-                    placeholder="RSS URL'leri (Her satıra bir tane)"
-                    defaultValue={preferences.rssUrls ? preferences.rssUrls.join('\n') : ''}
-                    onBlur={handleRssSave}
-                    style={{ ...inputStyle, padding: '8px', fontSize: '12px', minHeight: '60px', resize: 'vertical' }}
-                  />
-                )}
-                <button 
-                  onClick={() => handlePrefToggle(w.key)}
-                  style={{ ...btnStyle, borderColor: isActive ? '#25D366' : 'var(--neon-cyan)', color: isActive ? '#25D366' : 'var(--neon-cyan)' }}
-                >
-                  {isActive ? '✅ AKTİF (Kapat)' : '➕ PASİF (Aç)'}
-                </button>
-              </div>
-            )})}
-          </div>
-        </div>
-      )}
+
 
     </div>
   );
