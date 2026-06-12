@@ -48,9 +48,9 @@ app.use(express.json());
 
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
 
-const getLinksFile = (username) => path.join(__dirname, 'data', `links_${username}.json`);
+const getLinksFile = () => path.join(__dirname, 'data', 'links.json');
 const getPreferencesFile = (username) => path.join(__dirname, 'data', `preferences_${username}.json`);
-const getTagsFile = (username) => path.join(__dirname, 'data', `tags_${username}.json`);
+const getTagsFile = () => path.join(__dirname, 'data', 'tags.json');
 const getHeatmapFile = (username) => path.join(__dirname, 'data', `heatmap_${username}.json`);
 const ICONS_DIR = path.join(__dirname, 'public', 'icons');
 
@@ -62,17 +62,16 @@ if (!fs.existsSync(path.join(__dirname, 'data'))) {
   fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 }
 
-
-const oldLinks = path.join(__dirname, 'data', 'links.json');
-const adminLinks = getLinksFile('admin');
-if (fs.existsSync(oldLinks) && !fs.existsSync(adminLinks)) {
-  fs.renameSync(oldLinks, adminLinks);
+const adminLinks = path.join(__dirname, 'data', 'links_admin.json');
+const globalLinks = getLinksFile();
+if (fs.existsSync(adminLinks) && !fs.existsSync(globalLinks)) {
+  fs.renameSync(adminLinks, globalLinks);
 }
 
-const oldTags = path.join(__dirname, 'data', 'tags.json');
-const adminTags = getTagsFile('admin');
-if (fs.existsSync(oldTags) && !fs.existsSync(adminTags)) {
-  fs.renameSync(oldTags, adminTags);
+const adminTags = path.join(__dirname, 'data', 'tags_admin.json');
+const globalTags = getTagsFile();
+if (fs.existsSync(adminTags) && !fs.existsSync(globalTags)) {
+  fs.renameSync(adminTags, globalTags);
 }
 
 // Serve static icons
@@ -139,10 +138,8 @@ app.post('/api/users', authenticateToken, (req, res) => {
   users.push({ username: newUsername, passwordHash, role: userRole });
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
   
-  // Create empty links, tags, preferences and heatmap for new user
-  fs.writeFileSync(getLinksFile(newUsername), JSON.stringify([]));
+  // Sadece preferences ve heatmap kullanıcıya özel oluşturulacak
   fs.writeFileSync(getPreferencesFile(newUsername), JSON.stringify({}));
-  fs.writeFileSync(getTagsFile(newUsername), JSON.stringify([]));
   fs.writeFileSync(getHeatmapFile(newUsername), JSON.stringify({}));
   
   res.json({ success: true });
@@ -173,17 +170,9 @@ app.put('/api/users', authenticateToken, (req, res) => {
   
   // Rename files if username changed
   if (newUsername !== oldUsername) {
-    const oldLinksF = getLinksFile(oldUsername);
-    const newLinksF = getLinksFile(newUsername);
-    if (fs.existsSync(oldLinksF)) fs.renameSync(oldLinksF, newLinksF);
-
     const oldPrefF = getPreferencesFile(oldUsername);
     const newPrefF = getPreferencesFile(newUsername);
     if (fs.existsSync(oldPrefF)) fs.renameSync(oldPrefF, newPrefF);
-
-    const oldTagsF = getTagsFile(oldUsername);
-    const newTagsF = getTagsFile(newUsername);
-    if (fs.existsSync(oldTagsF)) fs.renameSync(oldTagsF, newTagsF);
 
     const oldHeatF = getHeatmapFile(oldUsername);
     const newHeatF = getHeatmapFile(newUsername);
@@ -206,12 +195,6 @@ app.delete('/api/users/:username', authenticateToken, (req, res) => {
   const prefFile = getPreferencesFile(username);
   if (fs.existsSync(prefFile)) fs.unlinkSync(prefFile);
 
-  const lFile = getLinksFile(username);
-  if (fs.existsSync(lFile)) fs.unlinkSync(lFile);
-  
-  const tFile = getTagsFile(username);
-  if (fs.existsSync(tFile)) fs.unlinkSync(tFile);
-  
   const hFile = getHeatmapFile(username);
   if (fs.existsSync(hFile)) fs.unlinkSync(hFile);
   
@@ -260,7 +243,7 @@ app.post('/api/fetch-icon', authenticateToken, async (req, res) => {
 
 // Get all links
 app.get('/api/links', authenticateToken, (req, res) => {
-  const file = getLinksFile(req.user.username);
+  const file = getLinksFile();
   fs.readFile(file, 'utf8', (err, data) => {
     if (err) {
       if (err.code === 'ENOENT') return res.json([]);
@@ -272,7 +255,8 @@ app.get('/api/links', authenticateToken, (req, res) => {
 
 // Save all links
 app.post('/api/links', authenticateToken, (req, res) => {
-  const file = getLinksFile(req.user.username);
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Yetkisiz' });
+  const file = getLinksFile();
   fs.writeFile(file, JSON.stringify(req.body, null, 2), 'utf8', (err) => {
     if (err) return res.status(500).json({ error: 'Failed to save data' });
     res.json({ success: true });
@@ -302,7 +286,7 @@ app.post('/api/preferences', authenticateToken, (req, res) => {
 
 // Get all tags
 app.get('/api/tags', authenticateToken, (req, res) => {
-  const file = getTagsFile(req.user.username);
+  const file = getTagsFile();
   fs.readFile(file, 'utf8', (err, data) => {
     if (err) {
       if (err.code === 'ENOENT') return res.json([]);
@@ -314,7 +298,8 @@ app.get('/api/tags', authenticateToken, (req, res) => {
 
 // Save all tags
 app.post('/api/tags', authenticateToken, (req, res) => {
-  const file = getTagsFile(req.user.username);
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Yetkisiz' });
+  const file = getTagsFile();
   fs.writeFile(file, JSON.stringify(req.body, null, 2), 'utf8', (err) => {
     if (err) return res.status(500).json({ error: 'Failed to save data' });
     res.json({ success: true });
@@ -437,9 +422,9 @@ app.post('/api/heatmap', authenticateToken, (req, res) => {
 app.get('/api/export', authenticateToken, (req, res) => {
   try {
     const username = req.user.username;
-    const lFile = getLinksFile(username);
+    const lFile = getLinksFile();
     const pFile = getPreferencesFile(username);
-    const tFile = getTagsFile(username);
+    const tFile = getTagsFile();
     const hFile = getHeatmapFile(username);
     
     const links = fs.existsSync(lFile) ? JSON.parse(fs.readFileSync(lFile, 'utf8')) : [];
@@ -459,9 +444,13 @@ app.post('/api/import', authenticateToken, (req, res) => {
     const { links, preferences, tags, heatmap } = req.body;
     const username = req.user.username;
     
-    if (links) fs.writeFileSync(getLinksFile(username), JSON.stringify(links, null, 2));
+    // Only admin can import global links/tags
+    if (req.user.role === 'admin') {
+      if (links) fs.writeFileSync(getLinksFile(), JSON.stringify(links, null, 2));
+      if (tags) fs.writeFileSync(getTagsFile(), JSON.stringify(tags, null, 2));
+    }
+    
     if (preferences) fs.writeFileSync(getPreferencesFile(username), JSON.stringify(preferences, null, 2));
-    if (tags) fs.writeFileSync(getTagsFile(username), JSON.stringify(tags, null, 2));
     if (heatmap) fs.writeFileSync(getHeatmapFile(username), JSON.stringify(heatmap, null, 2));
     
     res.json({ success: true });
