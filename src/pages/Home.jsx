@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import WeatherWidget from '../components/WeatherWidget';
 
 const Home = () => {
   const [links, setLinks] = useState([]);
@@ -96,7 +95,6 @@ const Home = () => {
       </div>
 
       <div style={{ position: 'fixed', top: '20px', right: '30px', zIndex: 10 }}>
-        {preferences.weather !== false && <WeatherWidget city={preferences.weatherCity} />}
       </div>
     </div>
   );
