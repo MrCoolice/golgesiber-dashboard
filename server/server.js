@@ -51,6 +51,7 @@ const USERS_FILE = path.join(__dirname, 'data', 'users.json');
 const getLinksFile = (username) => path.join(__dirname, 'data', `links_${username}.json`);
 const getPreferencesFile = (username) => path.join(__dirname, 'data', `preferences_${username}.json`);
 const getTagsFile = (username) => path.join(__dirname, 'data', `tags_${username}.json`);
+const getHeatmapFile = (username) => path.join(__dirname, 'data', `heatmap_${username}.json`);
 const ICONS_DIR = path.join(__dirname, 'public', 'icons');
 
 // Ensure directories exist
@@ -137,10 +138,11 @@ app.post('/api/users', authenticateToken, (req, res) => {
   users.push({ username: newUsername, passwordHash, role: 'user' });
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
   
-  // Create empty links, tags, and preferences for new user
+  // Create empty links, tags, preferences and heatmap for new user
   fs.writeFileSync(getLinksFile(newUsername), JSON.stringify([]));
   fs.writeFileSync(getPreferencesFile(newUsername), JSON.stringify({}));
   fs.writeFileSync(getTagsFile(newUsername), JSON.stringify([]));
+  fs.writeFileSync(getHeatmapFile(newUsername), JSON.stringify({}));
   
   res.json({ success: true });
 });
@@ -178,6 +180,10 @@ app.put('/api/users', authenticateToken, (req, res) => {
     const oldTagsF = getTagsFile(oldUsername);
     const newTagsF = getTagsFile(newUsername);
     if (fs.existsSync(oldTagsF)) fs.renameSync(oldTagsF, newTagsF);
+
+    const oldHeatF = getHeatmapFile(oldUsername);
+    const newHeatF = getHeatmapFile(newUsername);
+    if (fs.existsSync(oldHeatF)) fs.renameSync(oldHeatF, newHeatF);
   }
   
   res.json({ success: true });
@@ -201,6 +207,9 @@ app.delete('/api/users/:username', authenticateToken, (req, res) => {
   
   const tFile = getTagsFile(username);
   if (fs.existsSync(tFile)) fs.unlinkSync(tFile);
+  
+  const hFile = getHeatmapFile(username);
+  if (fs.existsSync(hFile)) fs.unlinkSync(hFile);
   
   res.json({ success: true });
 });
@@ -327,6 +336,69 @@ app.get('/api/widgets/rss', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('RSS Aggregator Error:', error);
     res.status(500).json({ error: 'Haberler çekilemedi' });
+  }
+});
+
+// --- HEATMAP ROUTES ---
+app.get('/api/heatmap', authenticateToken, (req, res) => {
+  const hFile = getHeatmapFile(req.user.username);
+  fs.readFile(hFile, 'utf8', (err, data) => {
+    if (err) {
+      if (err.code === 'ENOENT') return res.json({});
+      return res.status(500).json({ error: 'Failed to read data' });
+    }
+    try { res.json(JSON.parse(data)); } catch (e) { res.json({}); }
+  });
+});
+
+app.post('/api/heatmap', authenticateToken, (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ error: 'ID gerekli' });
+  const hFile = getHeatmapFile(req.user.username);
+  let heatmap = {};
+  if (fs.existsSync(hFile)) {
+    try { heatmap = JSON.parse(fs.readFileSync(hFile, 'utf8')); } catch (e) {}
+  }
+  heatmap[id] = (heatmap[id] || 0) + 1;
+  fs.writeFileSync(hFile, JSON.stringify(heatmap, null, 2), 'utf8');
+  res.json({ success: true });
+});
+
+// --- EXPORT / IMPORT ROUTES ---
+app.get('/api/export', authenticateToken, (req, res) => {
+  try {
+    const username = req.user.username;
+    const lFile = getLinksFile(username);
+    const pFile = getPreferencesFile(username);
+    const tFile = getTagsFile(username);
+    const hFile = getHeatmapFile(username);
+    
+    const links = fs.existsSync(lFile) ? JSON.parse(fs.readFileSync(lFile, 'utf8')) : [];
+    const preferences = fs.existsSync(pFile) ? JSON.parse(fs.readFileSync(pFile, 'utf8')) : {};
+    const tags = fs.existsSync(tFile) ? JSON.parse(fs.readFileSync(tFile, 'utf8')) : [];
+    const heatmap = fs.existsSync(hFile) ? JSON.parse(fs.readFileSync(hFile, 'utf8')) : {};
+    
+    res.json({ links, preferences, tags, heatmap });
+  } catch (error) {
+    console.error('Export Error:', error);
+    res.status(500).json({ error: 'Dışa aktarma başarısız oldu' });
+  }
+});
+
+app.post('/api/import', authenticateToken, (req, res) => {
+  try {
+    const { links, preferences, tags, heatmap } = req.body;
+    const username = req.user.username;
+    
+    if (links) fs.writeFileSync(getLinksFile(username), JSON.stringify(links, null, 2));
+    if (preferences) fs.writeFileSync(getPreferencesFile(username), JSON.stringify(preferences, null, 2));
+    if (tags) fs.writeFileSync(getTagsFile(username), JSON.stringify(tags, null, 2));
+    if (heatmap) fs.writeFileSync(getHeatmapFile(username), JSON.stringify(heatmap, null, 2));
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Import Error:', error);
+    res.status(500).json({ error: 'İçe aktarma başarısız oldu' });
   }
 });
 

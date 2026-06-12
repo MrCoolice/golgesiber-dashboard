@@ -10,6 +10,7 @@ const Admin = () => {
   const [userEditOldUsername, setUserEditOldUsername] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lastShared, setLastShared] = useState(null);
+  const [heatmap, setHeatmap] = useState({});
   
   const [appForm, setAppForm] = useState({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '' });
   const [appEditId, setAppEditId] = useState(null);
@@ -27,6 +28,12 @@ const Admin = () => {
     fetch(`${apiUrl}/tags`).then(r => r.json()).then(setTags).catch(e => console.error(e));
     
     try {
+      const token = localStorage.getItem('golgeToken');
+      if (token) {
+        fetch(`${apiUrl}/heatmap`, { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(r => r.json()).then(setHeatmap).catch(e => console.error(e));
+      }
+      
       const userStr = localStorage.getItem('golgeUser');
       if (userStr) {
         const user = JSON.parse(userStr);
@@ -201,6 +208,8 @@ const Admin = () => {
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' }}>
         <button onClick={() => setActiveTab('tags')} style={{ ...tabStyle, background: activeTab === 'tags' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'tags' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>🏷️ KATEGORİLER</button>
         <button onClick={() => setActiveTab('apps')} style={{ ...tabStyle, background: activeTab === 'apps' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'apps' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>💻 UYGULAMALAR</button>
+        <button onClick={() => setActiveTab('heatmap')} style={{ ...tabStyle, background: activeTab === 'heatmap' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'heatmap' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>🔥 ISI HARİTASI</button>
+        <button onClick={() => setActiveTab('system')} style={{ ...tabStyle, background: activeTab === 'system' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'system' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>⚙️ SİSTEM</button>
         {isAdmin && <button onClick={() => setActiveTab('users')} style={{ ...tabStyle, background: activeTab === 'users' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'users' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>👥 KULLANICILAR</button>}
       </div>
 
@@ -345,7 +354,108 @@ const Admin = () => {
         </div>
       )}
 
+      {activeTab === 'heatmap' && (
+        <div className="glass-panel" style={{ padding: '20px' }}>
+          <h2 style={{ color: 'var(--text-light)', borderBottom: '1px solid rgba(0,229,200,0.3)', paddingBottom: '10px', marginBottom: '20px' }}>
+            🔥 Kullanım İstatistikleri
+          </h2>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {Object.keys(heatmap).length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>Henüz tıklama verisi yok.</p>
+            ) : (
+              Object.entries(heatmap).sort((a,b) => b[1] - a[1]).map(([linkId, count]) => {
+                const link = links.find(l => l.id === linkId);
+                const title = link ? link.title : 'Silinmiş Servis';
+                const total = Object.values(heatmap).reduce((acc, c) => acc + c, 0);
+                const pct = ((count / total) * 100).toFixed(1);
+                
+                return (
+                  <div key={linkId} style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '8px', borderLeft: '4px solid var(--neon-cyan)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: 'bold', color: 'var(--text-light)' }}>{title}</span>
+                      <span style={{ color: 'var(--neon-green)' }}>{count} Tıklama (%{pct})</span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, var(--neon-cyan), var(--neon-green))' }} />
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+      )}
 
+      {activeTab === 'system' && (
+        <div className="glass-panel" style={{ padding: '20px' }}>
+          <h2 style={{ color: 'var(--text-light)', borderBottom: '1px solid rgba(0,229,200,0.3)', paddingBottom: '10px', marginBottom: '20px' }}>
+            💾 Yedekleme ve Geri Yükleme
+          </h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
+            Sistemdeki tüm kısayollarınızı, etiketlerinizi ve ayarlarınızı tek bir JSON dosyası olarak bilgisayarınıza indirebilir veya yükleyebilirsiniz.
+          </p>
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <button 
+              onClick={() => {
+                const token = localStorage.getItem('golgeToken');
+                fetch(`${apiUrl}/export`, { headers: { 'Authorization': `Bearer ${token}` } })
+                  .then(r => r.json())
+                  .then(data => {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `golge_backup_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                  }).catch(e => alert("Yedekleme başarısız oldu."));
+              }} 
+              style={{...btnStyle, padding: '15px 30px', fontSize: '16px', background: 'rgba(0,229,200,0.1)'}}
+            >
+              📥 SİSTEMİ YEDEKLE (EXPORT)
+            </button>
+            <input 
+              type="file" 
+              id="importInput" 
+              accept=".json" 
+              style={{ display: 'none' }} 
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  try {
+                    const data = JSON.parse(event.target.result);
+                    if (confirm('Tüm mevcut verileriniz silinip yedeğiniz yüklenecektir. Emin misiniz?')) {
+                      const token = localStorage.getItem('golgeToken');
+                      fetch(`${apiUrl}/import`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(data)
+                      }).then(r => r.json()).then(res => {
+                        if (res.success) {
+                          alert("Yedek başarıyla yüklendi! Sayfa yenileniyor...");
+                          window.location.reload();
+                        } else {
+                          alert("Hata oluştu.");
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    alert("Geçersiz yedek dosyası!");
+                  }
+                };
+                reader.readAsText(file);
+              }}
+            />
+            <button 
+              onClick={() => document.getElementById('importInput').click()} 
+              style={{...btnStyle, padding: '15px 30px', fontSize: '16px', borderColor: 'var(--neon-red)', color: 'var(--neon-red)'}}
+            >
+              📤 YEDEK YÜKLE (IMPORT)
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

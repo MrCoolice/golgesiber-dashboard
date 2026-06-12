@@ -4,6 +4,10 @@ import { Terminal, Hexagon, Settings, LogOut } from 'lucide-react';
 import Home from './pages/Home';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
+import SpotlightSearch from './components/SpotlightSearch';
+import DynamicBackground from './components/DynamicBackground';
+import HackerQuotes from './components/HackerQuotes';
+import './index.css';
 import './index.css';
 
 const Sidebar = ({ handleLogout }) => {
@@ -68,13 +72,43 @@ const Sidebar = ({ handleLogout }) => {
 
 const App = () => {
   const [auth, setAuth] = useState(null);
+  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+  const [links, setLinks] = useState([]);
+  const [preferences, setPreferences] = useState({ theme: 'dark', dynamicBackground: true, hackerQuotes: true });
   
   useEffect(() => {
     const token = localStorage.getItem('golgeToken');
     const userStr = localStorage.getItem('golgeUser');
     if (token && userStr) {
-      try { setAuth({ token, user: JSON.parse(userStr) }); } catch (e) {}
+      try { 
+        setAuth({ token, user: JSON.parse(userStr) }); 
+        
+        // Fetch preferences and links for global components
+        fetch('/api/preferences', { headers: { 'Authorization': `Bearer ${token}` }})
+          .then(res => res.json())
+          .then(data => {
+            if (Object.keys(data).length > 0) setPreferences(prev => ({ ...prev, ...data }));
+          }).catch(console.error);
+          
+        fetch('/api/links', { headers: { 'Authorization': `Bearer ${token}` }})
+          .then(res => res.json())
+          .then(data => setLinks(data))
+          .catch(console.error);
+          
+      } catch (e) {}
     }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // CTRL+K or CMD+K
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSpotlightOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleLogout = () => {
@@ -89,7 +123,15 @@ const App = () => {
 
   return (
     <Router>
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <DynamicBackground preferences={preferences} />
+      <HackerQuotes preferences={preferences} />
+      <SpotlightSearch 
+        isOpen={isSpotlightOpen} 
+        onClose={() => setIsSpotlightOpen(false)} 
+        links={links} 
+        theme={preferences.theme} 
+      />
+      <div style={{ display: 'flex', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
         <Sidebar handleLogout={handleLogout} />
         <div style={{ marginLeft: '80px', flex: 1, padding: '20px' }}>
           <Routes>
