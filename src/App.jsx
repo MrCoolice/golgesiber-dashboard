@@ -102,7 +102,7 @@ const App = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       // CTRL+K or CMD+K
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsSpotlightOpen(true);
       }
