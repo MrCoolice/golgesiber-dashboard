@@ -18,7 +18,7 @@ const Sidebar = ({ handleLogout }) => {
   ];
 
   return (
-    <div style={{
+    <div className="sidebar" style={{
       width: '80px',
       height: '100vh',
       position: 'fixed',
@@ -32,11 +32,11 @@ const Sidebar = ({ handleLogout }) => {
       paddingTop: '20px',
       zIndex: 1000
     }}>
-      <div style={{ color: 'var(--neon-cyan)', marginBottom: '40px' }}>
+      <div className="sidebar-logo" style={{ color: 'var(--neon-cyan)', marginBottom: '40px' }}>
         <Hexagon size={32} />
       </div>
       
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', alignItems: 'center' }}>
+      <div className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', alignItems: 'center' }}>
         {navItems.map(item => {
           const isActive = location.pathname === item.path;
           return (
@@ -55,7 +55,7 @@ const Sidebar = ({ handleLogout }) => {
         })}
       </div>
 
-      <div style={{ marginTop: 'auto', marginBottom: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
+      <div className="sidebar-bottom" style={{ marginTop: 'auto', marginBottom: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
         <Link to="/admin" style={{
             color: location.pathname === '/admin' ? 'var(--neon-green)' : 'var(--text-muted)',
             padding: '12px'
@@ -76,6 +76,12 @@ const App = () => {
   const [links, setLinks] = useState([]);
   const [preferences, setPreferences] = useState({ theme: 'dark', dynamicBackground: true, hackerQuotes: true });
   
+  function handleLogout() {
+    localStorage.removeItem('golgeToken');
+    localStorage.removeItem('golgeUser');
+    setAuth(null);
+  }
+
   useEffect(() => {
     const token = localStorage.getItem('golgeToken');
     const userStr = localStorage.getItem('golgeUser');
@@ -86,17 +92,26 @@ const App = () => {
         
         // Fetch preferences and links for global components
         fetch(`${backendUrl}/api/preferences`, { headers: { 'Authorization': `Bearer ${token}` }})
-          .then(res => res.json())
+          .then(res => {
+            if (!res.ok) throw new Error('Token geçersiz');
+            return res.json();
+          })
           .then(data => {
-            if (Object.keys(data).length > 0) setPreferences(prev => ({ ...prev, ...data }));
-          }).catch(console.error);
+            if (data && !data.error) setPreferences(prev => ({ ...prev, ...data }));
+          }).catch(() => { handleLogout(); });
           
         fetch(`${backendUrl}/api/links`, { headers: { 'Authorization': `Bearer ${token}` }})
-          .then(res => res.json())
-          .then(data => setLinks(data))
-          .catch(console.error);
+          .then(res => {
+            if (!res.ok) throw new Error('Token geçersiz');
+            return res.json();
+          })
+          .then(data => {
+            if (Array.isArray(data)) setLinks(data);
+          }).catch(() => { handleLogout(); });
           
-      } catch (e) {}
+      } catch (e) {
+        handleLogout();
+      }
     }
   }, []);
 
@@ -111,12 +126,6 @@ const App = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('golgeToken');
-    localStorage.removeItem('golgeUser');
-    setAuth(null);
-  };
 
   if (!auth) {
     return <Login onLogin={(data) => setAuth({ token: data.token, user: { username: data.username, role: data.role } })} />;
@@ -134,7 +143,7 @@ const App = () => {
       />
       <div style={{ display: 'flex', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
         <Sidebar handleLogout={handleLogout} />
-        <div style={{ marginLeft: '80px', flex: 1, padding: '20px' }}>
+        <div className="main-content" style={{ marginLeft: '80px', flex: 1, padding: '20px' }}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/admin" element={<Admin />} />
