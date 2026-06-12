@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #FBF9F4;
+  --color-linen: #F3EFE0;
+  --color-ink: #2B2625;
+  --color-bordo: #722F37;
+  --color-forest: #2C4A3E;
+  --color-amber: #D4A373;
+  --color-old-paper: #E8E2D5;
+
+  --font-playfair: "Playfair Display", serif;
+  --font-merriweather: "Merriweather", serif;
+  --font-cormorant: "Cormorant Garamond", serif;
+  --font-inter: "Inter", sans-serif;
+  --font-jakarta: "Plus Jakarta Sans", sans-serif;
+  --font-lora: "Lora", serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-inter);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    background-image: radial-gradient(circle at center, rgba(212, 163, 115, 0.05) 0%, transparent 100%);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-playfair);
+  }
+}
+
+@layer components {
+  /* Typography Components - Proje genelinde kullanilacak CSS siniflari */
+  
+  /* Başlıklar */
+  .heading-1 {
+    @apply font-playfair text-4xl md:text-5xl font-bold text-ink leading-tight;
+  }
+  .heading-2 {
+    @apply font-merriweather text-2xl md:text-3xl font-semibold text-bordo leading-snug;
+  }
+  .heading-3 {
+    @apply font-cormorant text-xl md:text-2xl font-medium text-ink;
+  }
+  
+  /* Gövde Metinleri */
+  .body-text {
+    @apply font-inter text-base text-ink leading-relaxed;
+  }
+  .body-alt {
+    @apply font-lora text-base text-ink leading-relaxed;
+  }
+  
+  /* Arayüz ve UI */
+  .ui-text {
+    @apply font-jakarta text-sm font-medium tracking-wide text-forest;
+  }
+  .price-tag {
+    @apply font-inter text-lg font-bold text-bordo;
+  }
+  
+  /* Butonlar */
+  .btn-primary {
+    @apply bg-bordo text-paper px-6 py-3 rounded font-jakarta font-semibold transition-all shadow-md;
+  }
+  .btn-primary:hover {
+    @apply opacity-90;
+  }
+
+  .btn-secondary {
+    @apply bg-forest text-paper px-6 py-3 rounded font-jakarta font-semibold transition-all shadow-md;
+  }
+  .btn-secondary:hover {
+    @apply opacity-90;
+  }
+
+  .btn-action {
+    @apply bg-amber text-ink px-6 py-3 rounded font-jakarta font-bold transition-all shadow-md;
+  }
+  .btn-action:hover {
+    @apply opacity-90;
+  }
+}
