@@ -47,7 +47,7 @@ const SpotlightSearch = ({ isOpen, onClose, links, theme }) => {
             body: JSON.stringify({ id: selectedLink.id })
           }).catch(err => console.error("Heatmap ping failed:", err));
 
-          window.open(selectedLink.url, selectedLink.openInNewTab ? '_blank' : '_self');
+          window.open(selectedLink.url, '_blank');
           onClose();
         }
       } else if (e.key === 'Escape') {
@@ -143,7 +143,7 @@ const SpotlightSearch = ({ isOpen, onClose, links, theme }) => {
                       },
                       body: JSON.stringify({ id: link.id })
                     }).catch(err => console.error(err));
-                    window.open(link.url, link.openInNewTab ? '_blank' : '_self');
+                    window.open(link.url, '_blank');
                     onClose();
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}

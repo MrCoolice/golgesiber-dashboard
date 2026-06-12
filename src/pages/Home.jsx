@@ -40,7 +40,7 @@ const SortableLinkCard = ({ link, backendUrl, onPingHeatmap }) => {
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <a 
         href={href} 
-        target={link.openInNewTab ? "_blank" : "_self"} 
+        target="_blank" 
         rel="noopener noreferrer" 
         style={{ textDecoration: 'none' }}
         onClick={(e) => {
