@@ -82,15 +82,16 @@ const App = () => {
     if (token && userStr) {
       try { 
         setAuth({ token, user: JSON.parse(userStr) }); 
+        const backendUrl = `http://${window.location.hostname}:3001`;
         
         // Fetch preferences and links for global components
-        fetch('/api/preferences', { headers: { 'Authorization': `Bearer ${token}` }})
+        fetch(`${backendUrl}/api/preferences`, { headers: { 'Authorization': `Bearer ${token}` }})
           .then(res => res.json())
           .then(data => {
             if (Object.keys(data).length > 0) setPreferences(prev => ({ ...prev, ...data }));
           }).catch(console.error);
           
-        fetch('/api/links', { headers: { 'Authorization': `Bearer ${token}` }})
+        fetch(`${backendUrl}/api/links`, { headers: { 'Authorization': `Bearer ${token}` }})
           .then(res => res.json())
           .then(data => setLinks(data))
           .catch(console.error);

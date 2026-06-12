@@ -37,7 +37,8 @@ const SpotlightSearch = ({ isOpen, onClose, links, theme }) => {
           const selectedLink = filteredLinks[selectedIndex];
           
           // Fire heatmap API
-          fetch('/api/heatmap', {
+          const backendUrl = `http://${window.location.hostname}:3001`;
+          fetch(`${backendUrl}/api/heatmap`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -133,7 +134,8 @@ const SpotlightSearch = ({ isOpen, onClose, links, theme }) => {
                 <div
                   key={link.id}
                   onClick={() => {
-                    fetch('/api/heatmap', {
+                    const backendUrl = `http://${window.location.hostname}:3001`;
+                    fetch(`${backendUrl}/api/heatmap`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
