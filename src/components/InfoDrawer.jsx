@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Copy, Check, Terminal, Server, Network, FileText, Hash } from 'lucide-react';
+import { X, ExternalLink, Copy, Check, Terminal, Server, Network, FileText, Hash, Globe } from 'lucide-react';
 import { RenderHomelabIcon } from '../utils/homelabIcons';
 
 const InfoDrawer = ({ isOpen, onClose, link, backendUrl }) => {
   const [copiedKey, setCopiedKey] = useState(null);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('golge-drawer-state', { detail: { open: Boolean(isOpen && link) } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('golge-drawer-state', { detail: { open: false } }));
+    };
+  }, [isOpen, link]);
 
   if (!isOpen || !link) return null;
 
@@ -17,6 +24,10 @@ const InfoDrawer = ({ isOpen, onClose, link, backendUrl }) => {
   const isHomelabIcon = link.icon && link.icon.startsWith('homelab:');
   const homelabKey = isHomelabIcon ? link.icon.replace('homelab:', '') : null;
   const href = (link.url && !link.url.startsWith('http')) ? `http://${link.url}` : link.url;
+
+  // Determine LAN vs WAN
+  const testStr = `${link.url || ''} ${link.ip || ''}`.toLowerCase();
+  const isLan = testStr.includes('10.') || testStr.includes('192.168.') || testStr.includes('172.') || testStr.includes('localhost') || testStr.includes('.local');
   
   // SSH Command generator
   const sshCmd = link.ip ? `ssh root@${link.ip}${link.port && link.port !== '22' && link.port !== 22 ? ` -p ${link.port}` : ''}` : null;
@@ -78,11 +89,27 @@ const InfoDrawer = ({ isOpen, onClose, link, backendUrl }) => {
                 <h2 style={{ margin: '0 0 4px 0', color: 'var(--text-light)', fontSize: '1.25rem', fontWeight: 700 }}>
                   {link.title}
                 </h2>
-                {link.category && (
-                  <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', background: 'rgba(0,229,200,0.15)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(0,229,200,0.3)' }}>
-                    {link.category}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {link.category && (
+                    <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', background: 'rgba(0,229,200,0.15)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(0,229,200,0.3)' }}>
+                      {link.category}
+                    </span>
+                  )}
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    border: `1px solid ${isLan ? 'rgba(0, 255, 102, 0.4)' : 'rgba(168, 85, 247, 0.4)'}`,
+                    background: isLan ? 'rgba(0, 255, 102, 0.12)' : 'rgba(168, 85, 247, 0.15)',
+                    color: isLan ? 'var(--neon-green)' : '#C084FC',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    {isLan ? '🟢 YEREL AĞ (LAN)' : '🌐 DIŞ AĞ (WAN)'}
                   </span>
-                )}
+                </div>
               </div>
             </div>
 

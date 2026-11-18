@@ -34,6 +34,13 @@ const Admin = () => {
   const [tagForm, setTagForm] = useState({ title: '', colour: '#161b22' });
   const [tagEditId, setTagEditId] = useState(null);
 
+  // Matomo Analytics Settings State
+  const [matomoSettings, setMatomoSettings] = useState({
+    matomoUrl: 'https://matomo.golgesiber.com',
+    matomoSiteId: 1,
+    matomoToken: ''
+  });
+
   // Toast notification state
   const [toast, setToast] = useState(null);
   const toastTimeoutRef = useRef(null);
@@ -56,6 +63,18 @@ const Admin = () => {
       if (token) {
         fetch(`${apiUrl}/heatmap`, { headers: { 'Authorization': `Bearer ${token}` } })
           .then(r => r.json()).then(setHeatmap).catch(e => console.error(e));
+
+        fetch(`${apiUrl}/preferences`, { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(prefs => {
+            if (prefs) {
+              setMatomoSettings({
+                matomoUrl: prefs.matomoUrl || 'https://matomo.golgesiber.com',
+                matomoSiteId: prefs.matomoSiteId || 1,
+                matomoToken: prefs.matomoToken || ''
+              });
+            }
+          }).catch(console.error);
       }
       
       const userStr = localStorage.getItem('golgeUser');
@@ -103,6 +122,27 @@ const Admin = () => {
         showToast('Kategoriler güncellendi.', 'success');
       })
       .catch(e => showToast('Kaydedilemedi: ' + e.message, 'error'));
+  };
+
+  const saveMatomoSettings = () => {
+    const token = localStorage.getItem('golgeToken');
+    fetch(`${apiUrl}/preferences`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(currentPrefs => {
+        const updated = {
+          ...(currentPrefs || {}),
+          matomoUrl: matomoSettings.matomoUrl,
+          matomoSiteId: Number(matomoSettings.matomoSiteId) || 1,
+          matomoToken: matomoSettings.matomoToken
+        };
+        return fetch(`${apiUrl}/preferences`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(updated)
+        });
+      })
+      .then(() => showToast('Matomo analitik ayarları kaydedildi.', 'success'))
+      .catch(e => showToast('Ayarlar kaydedilemedi: ' + e.message, 'error'));
   };
 
   // Auto-detect Homelab icon when typing title or URL if no icon is explicitly set
@@ -510,6 +550,37 @@ const Admin = () => {
               />
             </div>
 
+            {/* Yerel Ağ IP Çakışma Denetleyicisi Uyarısı */}
+            {(() => {
+              const conflict = links.find(l => 
+                appForm.ip && 
+                appForm.ip.trim() !== '' && 
+                l.ip && 
+                l.ip.trim().toLowerCase() === appForm.ip.trim().toLowerCase() && 
+                l.id !== appEditId
+              );
+              if (!conflict) return null;
+              return (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid var(--neon-red)',
+                  borderRadius: '6px',
+                  padding: '10px 14px',
+                  color: 'var(--neon-red)',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  animation: 'pulse 2s infinite'
+                }}>
+                  <span style={{ fontSize: '16px' }}>⚠️</span>
+                  <span>
+                    <b>IP ÇAKIŞMASI UYARISI:</b> <code>{appForm.ip}</code> adresi şu an zaten <b>"{conflict.title}"</b> ({conflict.category || 'Servis'}) tarafından kullanılıyor! Lütfen IP çakışmasını önlemek için farklı bir IP atayın.
+                  </span>
+                </div>
+              );
+            })()}
+
             {/* Row 3: Icon Selector & Actions */}
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.3)', padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border-cyan)' }}>
@@ -884,6 +955,58 @@ const Admin = () => {
               style={{...btnStyle, padding: '12px 24px', fontSize: '15px', borderColor: 'var(--neon-red)', color: 'var(--neon-red)'}}
             >
               📤 YEDEK YÜKLE (IMPORT)
+            </button>
+          </div>
+
+          {/* 📊 Matomo Web Analytics Integration Settings */}
+          <div style={{ marginTop: '40px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '25px' }}>
+            <h2 style={{ color: 'var(--text-light)', borderBottom: '1px solid rgba(0,229,200,0.3)', paddingBottom: '10px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              📊 Matomo Web Analitik Entegrasyonu
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px', lineHeight: '1.5' }}>
+              Dashboard ana ekranındaki Matomo kartı üzerinde <b>günlük tekil ziyaretçi sayısının</b> canlı görünmesi için Matomo bağlantı bilgilerinizi girin. Token oluşturmak için Matomo panelinizde: <i>Ayarlar &gt; Kişisel &gt; Güvenlik &gt; API Erişim Belirteçleri</i> adımlarını takip edebilirsiniz.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '15px', marginBottom: '15px' }}>
+              <div>
+                <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '12px', marginBottom: '5px' }}>Matomo URL Adresi</label>
+                <input 
+                  type="text" 
+                  value={matomoSettings.matomoUrl} 
+                  onChange={e => setMatomoSettings({ ...matomoSettings, matomoUrl: e.target.value })} 
+                  style={{ ...inputStyle, width: '100%' }}
+                  placeholder="https://matomo.golgesiber.com"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '12px', marginBottom: '5px' }}>Site ID</label>
+                <input 
+                  type="number" 
+                  value={matomoSettings.matomoSiteId} 
+                  onChange={e => setMatomoSettings({ ...matomoSettings, matomoSiteId: e.target.value })} 
+                  style={{ ...inputStyle, width: '100%' }}
+                  placeholder="1"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '12px', marginBottom: '5px' }}>Read-Only API Belirteci (token_auth)</label>
+                <input 
+                  type="password" 
+                  value={matomoSettings.matomoToken} 
+                  onChange={e => setMatomoSettings({ ...matomoSettings, matomoToken: e.target.value })} 
+                  style={{ ...inputStyle, width: '100%' }}
+                  placeholder="Örn: 9a8b7c6d5e4f..."
+                />
+              </div>
+            </div>
+
+            <button 
+              onClick={saveMatomoSettings}
+              style={{ ...btnStyle, background: 'rgba(0, 229, 200, 0.12)', padding: '10px 20px' }}
+            >
+              💾 Matomo Ayarlarını Kaydet
             </button>
           </div>
         </div>

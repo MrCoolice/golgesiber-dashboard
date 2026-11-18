@@ -349,6 +349,103 @@ app.get('/api/widgets/rss', authenticateToken, async (req, res) => {
   }
 });
 
+// --- WAN STATUS ROUTE ---
+let cachedWan = {
+  online: true,
+  publicIp: null,
+  gateway: '10.50.50.1',
+  lastCheck: 0
+};
+
+app.get('/api/wan-status', authenticateToken, async (req, res) => {
+  const now = Date.now();
+  // 60 saniye boyunca önbellekten ver
+  if (now - cachedWan.lastCheck < 60000 && cachedWan.publicIp) {
+    return res.json(cachedWan);
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const resp = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+    clearTimeout(timeout);
+    
+    if (resp.ok) {
+      const data = await resp.json();
+      cachedWan = {
+        online: true,
+        publicIp: data.ip,
+        gateway: '10.50.50.1',
+        lastCheck: now
+      };
+      return res.json(cachedWan);
+    }
+  } catch (err) {
+    try {
+      const altController = new AbortController();
+      const altTimeout = setTimeout(() => altController.abort(), 3000);
+      const altResp = await fetch('https://icanhazip.com', { signal: altController.signal });
+      clearTimeout(altTimeout);
+      if (altResp.ok) {
+        const text = await altResp.text();
+        cachedWan = {
+          online: true,
+          publicIp: text.trim(),
+          gateway: '10.50.50.1',
+          lastCheck: now
+        };
+        return res.json(cachedWan);
+      }
+    } catch (e2) {
+      cachedWan = {
+        online: false,
+        publicIp: null,
+        gateway: '10.50.50.1',
+        lastCheck: now,
+        error: 'İnternet bağlantısı yok veya sorgu zaman aşımına uğradı'
+      };
+      return res.json(cachedWan);
+    }
+  }
+
+  res.json(cachedWan);
+});
+
+// --- MATOMO STATS ROUTE ---
+app.get('/api/matomo-stats', authenticateToken, async (req, res) => {
+  try {
+    const pFile = getPreferencesFile(req.user.username);
+    let prefs = {};
+    if (fs.existsSync(pFile)) {
+      prefs = JSON.parse(fs.readFileSync(pFile, 'utf8'));
+    }
+    const matomoUrl = (prefs.matomoUrl || process.env.MATOMO_URL || 'https://matomo.golgesiber.com').replace(/\/+$/, '');
+    const matomoToken = prefs.matomoToken || process.env.MATOMO_TOKEN;
+    const siteId = prefs.matomoSiteId || 1;
+
+    if (!matomoToken) {
+      return res.json({ configured: false, visits: null, message: 'Matomo API token girilmemiş' });
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    const apiUrl = `${matomoUrl}/index.php?module=API&method=VisitsSummary.getVisits&idSite=${siteId}&period=day&date=today&format=JSON&token_auth=${matomoToken}`;
+
+    const resp = await fetch(apiUrl, { signal: controller.signal, agent: httpsAgent });
+    clearTimeout(timeout);
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const visits = typeof data.value !== 'undefined' ? data.value : (typeof data === 'number' ? data : 0);
+      return res.json({ configured: true, visits: Number(visits), date: 'today' });
+    }
+    return res.json({ configured: true, visits: 0, error: 'Matomo API yanıt vermedi' });
+  } catch (err) {
+    return res.json({ configured: false, visits: null, error: err.message });
+  }
+});
+
 // --- HEATMAP ROUTES ---
 app.get('/api/heatmap', authenticateToken, (req, res) => {
   const hFile = getHeatmapFile(req.user.username);

@@ -142,7 +142,7 @@ const App = () => {
         links={links} 
         theme={preferences.theme} 
       />
-      <div style={{ display: 'flex', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
         <Sidebar handleLogout={handleLogout} userRole={auth.user.role} />
         <div className="main-content" style={{ marginLeft: '80px', flex: 1, padding: '20px' }}>
           <Routes>
