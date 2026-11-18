@@ -421,26 +421,50 @@ app.get('/api/matomo-stats', authenticateToken, async (req, res) => {
     }
     const matomoUrl = (prefs.matomoUrl || process.env.MATOMO_URL || 'https://matomo.golgesiber.com').replace(/\/+$/, '');
     const matomoToken = prefs.matomoToken || process.env.MATOMO_TOKEN;
-    const siteId = prefs.matomoSiteId || 1;
+    const defaultSiteId = Number(prefs.matomoSiteId) || 4;
 
     if (!matomoToken) {
       return res.json({ configured: false, visits: null, message: 'Matomo API token girilmemiş' });
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
     const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-    const apiUrl = `${matomoUrl}/index.php?module=API&method=VisitsSummary.getVisits&idSite=${siteId}&period=day&date=today&format=JSON&token_auth=${matomoToken}`;
 
-    const resp = await fetch(apiUrl, { signal: controller.signal, agent: httpsAgent });
-    clearTimeout(timeout);
+    // Known site IDs: 4: GolgeSiber, 2: Kitabevi, 5: Dalaman
+    const siteIds = [2, 4, 5];
+    const sites = {};
+    let totalVisits = 0;
 
-    if (resp.ok) {
-      const data = await resp.json();
-      const visits = typeof data.value !== 'undefined' ? data.value : (typeof data === 'number' ? data : 0);
-      return res.json({ configured: true, visits: Number(visits), date: 'today' });
-    }
-    return res.json({ configured: true, visits: 0, error: 'Matomo API yanıt vermedi' });
+    await Promise.all(
+      siteIds.map(async (sid) => {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 4000);
+          const apiUrl = `${matomoUrl}/index.php?module=API&method=VisitsSummary.getVisits&idSite=${sid}&period=day&date=today&format=JSON&token_auth=${matomoToken}`;
+          const resp = await fetch(apiUrl, { signal: controller.signal, agent: httpsAgent });
+          clearTimeout(timeout);
+
+          if (resp.ok) {
+            const data = await resp.json();
+            const val = typeof data.value !== 'undefined' ? data.value : (typeof data === 'number' ? data : 0);
+            const count = Number(val) || 0;
+            sites[sid.toString()] = count;
+            totalVisits += count;
+          } else {
+            sites[sid.toString()] = 0;
+          }
+        } catch (e) {
+          sites[sid.toString()] = 0;
+        }
+      })
+    );
+
+    return res.json({
+      configured: true,
+      sites, // { "2": X, "4": Y, "5": Z }
+      visits: sites[defaultSiteId.toString()] || 0,
+      total: totalVisits,
+      date: 'today'
+    });
   } catch (err) {
     return res.json({ configured: false, visits: null, error: err.message });
   }

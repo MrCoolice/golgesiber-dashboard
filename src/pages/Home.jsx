@@ -26,7 +26,7 @@ const SortableLinkCard = ({
   onOpenInfo, 
   isPinned, 
   onTogglePin,
-  matomoVisits 
+  matomoStats 
 }) => {
   const {
     attributes,
@@ -243,27 +243,49 @@ const SortableLinkCard = ({
                   </span>
                 )}
 
-                {/* Matomo Daily Visitor Counter Badge */}
-                {isMatomoCard && matomoVisits !== null && (
-                  <span 
-                    title="Bugünkü Tekil Ziyaretçi Sayısı"
-                    style={{
-                      color: '#E0AAFF',
-                      fontSize: '10px',
-                      background: 'rgba(147, 51, 234, 0.2)',
-                      border: '1px solid rgba(147, 51, 234, 0.4)',
-                      padding: '1px 6px',
-                      borderRadius: '4px',
-                      fontWeight: 'bold',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Activity size={10} />
-                    {matomoVisits} Ziyaretçi (Bugün)
-                  </span>
-                )}
+                {/* Matomo Daily Visitor Counter Badge (Multi-Site Support) */}
+                {(() => {
+                  if (!matomoStats || !matomoStats.configured) return null;
+                  const title = (link.title || '').toLowerCase();
+                  const url = (link.url || '').toLowerCase();
+
+                  let count = null;
+                  let label = 'Ziyaret';
+
+                  if (title.includes('matomo')) {
+                    count = matomoStats.total;
+                    label = 'Toplam Ziyaret';
+                  } else if (url.includes('golgesiber.com') || title.includes('golgesiber')) {
+                    count = matomoStats.sites?.['4'];
+                  } else if (url.includes('golgekitabevi.com') || title.includes('kitabevi')) {
+                    count = matomoStats.sites?.['2'];
+                  } else if (url.includes('dalaman') || title.includes('dalaman') || title.includes('casa turka')) {
+                    count = matomoStats.sites?.['5'];
+                  }
+
+                  if (count === null || typeof count === 'undefined') return null;
+
+                  return (
+                    <span 
+                      title={`Bugünkü tekil ziyaretçi sayısı (Matomo Analitik)`}
+                      style={{
+                        color: '#E0AAFF',
+                        fontSize: '10px',
+                        background: 'rgba(147, 51, 234, 0.2)',
+                        border: '1px solid rgba(147, 51, 234, 0.45)',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontWeight: 'bold',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Activity size={10} color="#C084FC" />
+                      {count} {label} (Bugün)
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -279,7 +301,7 @@ const Home = () => {
   const [error, setError] = useState(false);
   const [selectedInfoLink, setSelectedInfoLink] = useState(null);
   const [pinnedIds, setPinnedIds] = useState([]);
-  const [matomoVisits, setMatomoVisits] = useState(null);
+  const [matomoStats, setMatomoStats] = useState(null);
   const backendUrl = `http://${window.location.hostname}:3001`;
 
   const sensors = useSensors(
@@ -320,8 +342,8 @@ const Home = () => {
     fetch(`${backendUrl}/api/matomo-stats`, { headers: authHeaders })
       .then(r => r.json())
       .then(data => {
-        if (data && data.configured && typeof data.visits !== 'undefined') {
-          setMatomoVisits(data.visits);
+        if (data && data.configured) {
+          setMatomoStats(data);
         }
       })
       .catch(() => {});
@@ -497,7 +519,7 @@ const Home = () => {
                   onOpenInfo={(item) => setSelectedInfoLink(item)}
                   isPinned={true}
                   onTogglePin={handleTogglePin}
-                  matomoVisits={matomoVisits}
+                  matomoStats={matomoStats}
                 />
               ))}
             </div>
@@ -570,7 +592,7 @@ const Home = () => {
                       onOpenInfo={(item) => setSelectedInfoLink(item)}
                       isPinned={pinnedIds.includes(link.id)}
                       onTogglePin={handleTogglePin}
-                      matomoVisits={matomoVisits}
+                      matomoStats={matomoStats}
                     />
                   ))}
                 </div>
