@@ -419,7 +419,12 @@ app.get('/api/matomo-stats', authenticateToken, async (req, res) => {
     if (fs.existsSync(pFile)) {
       prefs = JSON.parse(fs.readFileSync(pFile, 'utf8'));
     }
-    const matomoUrl = (prefs.matomoUrl || process.env.MATOMO_URL || 'https://matomo.golgesiber.com').replace(/\/+$/, '');
+    let matomoUrl = (prefs.matomoUrl || process.env.MATOMO_URL || 'http://10.30.30.106').replace(/\/+$/, '');
+    // If set to external domain, route directly via internal IP to bypass NAT reflection issues
+    if (matomoUrl.includes('matomo.golgesiber.com')) {
+      matomoUrl = 'http://10.30.30.106';
+    }
+
     const matomoToken = prefs.matomoToken || process.env.MATOMO_TOKEN;
     const defaultSiteId = Number(prefs.matomoSiteId) || 4;
 
