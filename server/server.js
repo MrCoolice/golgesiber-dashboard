@@ -439,23 +439,35 @@ app.get('/api/matomo-stats', authenticateToken, async (req, res) => {
         try {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 4000);
-          const apiUrl = `${matomoUrl}/index.php?module=API&method=VisitsSummary.getVisits&idSite=${sid}&period=day&date=today&format=JSON&token_auth=${matomoToken}`;
-          const resp = await fetch(apiUrl, { signal: controller.signal, agent: httpsAgent });
+          const apiUrl = `${matomoUrl}/index.php`;
+          const bodyParams = new URLSearchParams({
+            module: 'API',
+            method: 'VisitsSummary.getVisits',
+            idSite: sid.toString(),
+            period: 'day',
+            date: 'today',
+            format: 'JSON',
+            token_auth: matomoToken
+          });
+
+          const resp = await fetch(apiUrl, {
+            method: 'POST',
+            body: bodyParams,
+            signal: controller.signal,
+            agent: httpsAgent
+          });
           clearTimeout(timeout);
 
           if (resp.ok) {
             const data = await resp.json();
-            console.log(`[Matomo] Site ${sid} response:`, JSON.stringify(data));
             const val = typeof data.value !== 'undefined' ? data.value : (typeof data === 'number' ? data : 0);
             const count = Number(val) || 0;
             sites[sid.toString()] = count;
             totalVisits += count;
           } else {
-            console.warn(`[Matomo] Site ${sid} HTTP ${resp.status}`);
             sites[sid.toString()] = 0;
           }
         } catch (e) {
-          console.error(`[Matomo] Site ${sid} connection error:`, e.message);
           sites[sid.toString()] = 0;
         }
       })
