@@ -427,7 +427,8 @@ app.get('/api/matomo-stats', authenticateToken, async (req, res) => {
       return res.json({ configured: false, visits: null, message: 'Matomo API token girilmemiş' });
     }
 
-    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    const isHttps = matomoUrl.startsWith('https');
+    const agent = isHttps ? new https.Agent({ rejectUnauthorized: false }) : undefined;
 
     // Known site IDs: 4: GolgeSiber, 2: Kitabevi, 5: Dalaman
     const siteIds = [2, 4, 5];
@@ -450,12 +451,14 @@ app.get('/api/matomo-stats', authenticateToken, async (req, res) => {
             token_auth: matomoToken
           });
 
-          const resp = await fetch(apiUrl, {
+          const fetchOpts = {
             method: 'POST',
             body: bodyParams,
-            signal: controller.signal,
-            agent: httpsAgent
-          });
+            signal: controller.signal
+          };
+          if (agent) fetchOpts.agent = agent;
+
+          const resp = await fetch(apiUrl, fetchOpts);
           clearTimeout(timeout);
 
           if (resp.ok) {
