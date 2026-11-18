@@ -445,14 +445,17 @@ app.get('/api/matomo-stats', authenticateToken, async (req, res) => {
 
           if (resp.ok) {
             const data = await resp.json();
+            console.log(`[Matomo] Site ${sid} response:`, JSON.stringify(data));
             const val = typeof data.value !== 'undefined' ? data.value : (typeof data === 'number' ? data : 0);
             const count = Number(val) || 0;
             sites[sid.toString()] = count;
             totalVisits += count;
           } else {
+            console.warn(`[Matomo] Site ${sid} HTTP ${resp.status}`);
             sites[sid.toString()] = 0;
           }
         } catch (e) {
+          console.error(`[Matomo] Site ${sid} connection error:`, e.message);
           sites[sid.toString()] = 0;
         }
       })
