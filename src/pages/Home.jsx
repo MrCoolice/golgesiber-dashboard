@@ -247,19 +247,26 @@ const SortableLinkCard = ({
                 {(() => {
                   if (!matomoStats || !matomoStats.configured) return null;
                   const title = (link.title || '').toLowerCase();
-                  const url = (link.url || '').toLowerCase();
+                  const rawUrl = (link.url || '').toLowerCase();
+
+                  let cleanHost = '';
+                  try {
+                    cleanHost = new URL((rawUrl.startsWith('http') ? rawUrl : 'http://' + rawUrl)).hostname.toLowerCase();
+                  } catch (e) {
+                    cleanHost = rawUrl;
+                  }
 
                   let count = null;
                   let label = 'Ziyaret';
 
-                  if (title.includes('matomo')) {
+                  if (title.includes('matomo') || cleanHost.includes('matomo')) {
                     count = matomoStats.total;
                     label = 'Toplam Ziyaret';
-                  } else if ((title.includes('gölgesiber') || title.includes('golgesiber')) && !title.includes('dashboard') && !url.includes('nc.') && !url.includes('status.')) {
+                  } else if (cleanHost === 'golgesiber.com' || cleanHost === 'www.golgesiber.com' || title.includes('gölgesiber v3') || title.includes('golgesiber v3')) {
                     count = matomoStats.sites?.['4'];
-                  } else if (url.includes('golgekitabevi.com') || title.includes('kitabevi')) {
+                  } else if (cleanHost.includes('golgekitabevi.com') || title.includes('kitabevi')) {
                     count = matomoStats.sites?.['2'];
-                  } else if (url.includes('dalaman') || title.includes('dalaman') || title.includes('casa turka')) {
+                  } else if (cleanHost.includes('dalamanairportsuites.com') || title.includes('dalaman') || title.includes('casa turka')) {
                     count = matomoStats.sites?.['5'];
                   }
 
