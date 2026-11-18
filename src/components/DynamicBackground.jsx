@@ -1,68 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
 
-const DynamicBackground = ({ preferences }) => {
-  const [bgUrl, setBgUrl] = useState('');
-  
-  useEffect(() => {
-    // If user prefers static background or no background, respect that
-    if (preferences.dynamicBackground === false) return;
-    
-    // Fetch a beautiful Unsplash random technology/abstract image
-    // Note: We use source.unsplash for random images without needing API key
-    const theme = preferences.theme === 'light' ? 'light,abstract' : 'dark,cyberpunk,technology';
-    const url = `https://source.unsplash.com/random/1920x1080/?${theme}&sig=${new Date().getDay()}`;
-    
-    setBgUrl(url);
-  }, [preferences.theme, preferences.dynamicBackground]);
-
+const DynamicBackground = ({ preferences = {} }) => {
   if (preferences.dynamicBackground === false) {
     return null;
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      zIndex: -2,
-      backgroundColor: preferences.theme === 'light' ? '#f0f2f5' : '#0f172a',
-      overflow: 'hidden'
-    }}>
-      <AnimatePresence>
-        {bgUrl && (
-          <motion.div
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 0.3, scale: 1 }}
-            transition={{ duration: 2 }}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundImage: `url(${bgUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'blur(8px)',
-              transform: 'scale(1.05)'
-            }}
-          />
-        )}
-      </AnimatePresence>
-      <div style={{
-        position: 'absolute',
+    <div 
+      aria-hidden="true"
+      style={{
+        position: 'fixed',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
-        background: preferences.theme === 'light' 
-          ? 'linear-gradient(to bottom right, rgba(255,255,255,0.8), rgba(240,242,245,0.9))'
-          : 'linear-gradient(to bottom right, rgba(15,23,42,0.85), rgba(0,0,0,0.95))',
-        zIndex: -1
-      }} />
+        width: '100vw',
+        height: '100vh',
+        zIndex: -2,
+        backgroundColor: '#060d1f',
+        overflow: 'hidden',
+        pointerEvents: 'none'
+      }}
+    >
+      {/* Radial ambient cyber glows */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: '-15%',
+          left: '20%',
+          width: '55vw',
+          height: '55vw',
+          maxWidth: '700px',
+          maxHeight: '700px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0, 229, 200, 0.08) 0%, rgba(6, 13, 31, 0) 70%)',
+          filter: 'blur(60px)',
+          animation: 'pulse 8s ease-in-out infinite alternate'
+        }}
+      />
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: '-10%',
+          right: '15%',
+          width: '50vw',
+          height: '50vw',
+          maxWidth: '650px',
+          maxHeight: '650px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0, 255, 102, 0.06) 0%, rgba(6, 13, 31, 0) 70%)',
+          filter: 'blur(70px)',
+          animation: 'pulse 10s ease-in-out infinite alternate-reverse'
+        }}
+      />
+
+      {/* Cyber Grid Pattern */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundImage: `
+            linear-gradient(to right, rgba(0, 229, 200, 0.03) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0, 229, 200, 0.03) 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px',
+          opacity: 0.6
+        }}
+      />
+
+      {/* Vignette Overlay */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(6, 13, 31, 0.95) 100%)'
+        }}
+      />
     </div>
   );
 };

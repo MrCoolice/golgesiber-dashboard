@@ -8,7 +8,6 @@ import SpotlightSearch from './components/SpotlightSearch';
 import DynamicBackground from './components/DynamicBackground';
 import HackerQuotes from './components/HackerQuotes';
 import './index.css';
-import './index.css';
 
 const Sidebar = ({ handleLogout, userRole }) => {
   const location = useLocation();

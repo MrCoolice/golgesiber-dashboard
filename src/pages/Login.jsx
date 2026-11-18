@@ -32,7 +32,7 @@ const Login = ({ onLogin }) => {
       <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '30px', textAlign: 'center' }}>
         <ShieldAlert size={48} color="var(--neon-cyan)" style={{ margin: '0 auto 20px auto', filter: 'drop-shadow(0 0 10px var(--neon-cyan))' }} />
         <h2 style={{ color: 'var(--neon-cyan)', margin: '0 0 5px 0', letterSpacing: '2px' }}>GÖLGESİBER</h2>
-        <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '30px', letterSpacing: '5px' }}>YATIRIM PORTALI</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '30px', letterSpacing: '5px' }}>SİSTEM PORTALI</div>
         
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input 

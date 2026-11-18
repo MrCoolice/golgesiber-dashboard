@@ -6,7 +6,7 @@ const Admin = () => {
   const [links, setLinks] = useState([]);
   const [tags, setTags] = useState([]);
   const [usersList, setUsersList] = useState([]);
-  const [newUserForm, setNewUserForm] = useState({ username: '', password: '' });
+  const [newUserForm, setNewUserForm] = useState({ username: '', password: '', role: 'user' });
   const [userEditOldUsername, setUserEditOldUsername] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lastShared, setLastShared] = useState(null);
@@ -21,6 +21,16 @@ const Admin = () => {
 
   const [tagForm, setTagForm] = useState({ title: '', colour: '#161b22' });
   const [tagEditId, setTagEditId] = useState(null);
+
+  // Toast notification state
+  const [toast, setToast] = useState(null);
+  const toastTimeoutRef = useRef(null);
+
+  const showToast = (message, type = 'success') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast({ message, type });
+    toastTimeoutRef.current = setTimeout(() => setToast(null), 3500);
+  };
 
   const apiUrl = `http://${window.location.hostname}:3001/api`;
   const backendUrl = `http://${window.location.hostname}:3001`;
@@ -45,21 +55,42 @@ const Admin = () => {
         }
       }
     } catch(e) {}
+
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
   }, []);
 
   const fetchUsers = () => {
     fetch(`${apiUrl}/users`).then(r => r.json()).then(data => {
-      if(Array.isArray(data)) setUsersList(data);
+      if (Array.isArray(data)) setUsersList(data);
     }).catch(e => console.error(e));
   };
 
   const saveLinks = (newLinks) => {
-    fetch(`${apiUrl}/links`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLinks) })
-      .then(() => setLinks(newLinks)).catch(e => alert('Hata: ' + e));
+    fetch(`${apiUrl}/links`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(newLinks) 
+    })
+      .then(() => {
+        setLinks(newLinks);
+        showToast('Uygulama listesi kaydedildi.', 'success');
+      })
+      .catch(e => showToast('Kaydedilemedi: ' + e.message, 'error'));
   };
+
   const saveTags = (newTags) => {
-    fetch(`${apiUrl}/tags`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newTags) })
-      .then(() => setTags(newTags)).catch(e => alert('Hata: ' + e));
+    fetch(`${apiUrl}/tags`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(newTags) 
+    })
+      .then(() => {
+        setTags(newTags);
+        showToast('Kategoriler güncellendi.', 'success');
+      })
+      .catch(e => showToast('Kaydedilemedi: ' + e.message, 'error'));
   };
 
   // --- ICON HANDLERS ---
@@ -75,10 +106,14 @@ const Admin = () => {
     })
     .then(r => r.json())
     .then(data => {
-      if (data.url) setAppForm({...appForm, icon: data.url});
-      else alert(data.error || "İkon bulunamadı.");
+      if (data.url) {
+        setAppForm({...appForm, icon: data.url});
+        showToast('İkon başarıyla çekildi.', 'success');
+      } else {
+        showToast(data.error || "İkon bulunamadı.", 'error');
+      }
     })
-    .catch(() => alert("Sunucuya bağlanılamadı."))
+    .catch(() => showToast("Sunucuya bağlanılamadı.", 'error'))
     .finally(() => setFetchingIcon(false));
   };
 
@@ -91,14 +126,20 @@ const Admin = () => {
     fetch(`${apiUrl}/upload`, { method: 'POST', body: formData })
       .then(r => r.json())
       .then(data => {
-        if(data.url) setAppForm({...appForm, icon: data.url});
+        if (data.url) {
+          setAppForm({...appForm, icon: data.url});
+          showToast('Özel logo başarıyla yüklendi.', 'success');
+        }
       })
-      .catch(() => alert("Dosya yükleme başarısız."));
+      .catch(() => showToast("Dosya yükleme başarısız.", 'error'));
   };
 
   // --- APP HANDLERS ---
   const handleAppSubmit = () => {
-    if (!appForm.title || !appForm.url) return;
+    if (!appForm.title || !appForm.url) {
+      showToast('Başlık ve URL alanları zorunludur.', 'error');
+      return;
+    }
     if (appEditId) {
       saveLinks(links.map(l => l.id === appEditId ? { ...appForm, id: appEditId } : l));
       setAppEditId(null);
@@ -107,15 +148,34 @@ const Admin = () => {
     }
     setAppForm({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '' });
   };
-  const handleAppDelete = (id) => saveLinks(links.filter(l => l.id !== id));
+
+  const handleAppDelete = (id) => {
+    const target = links.find(l => l.id === id);
+    const title = target ? target.title : 'Bu uygulamayı';
+    if (window.confirm(`"${title}" servisini silmek istediğinize emin misiniz?`)) {
+      saveLinks(links.filter(l => l.id !== id));
+      showToast(`"${title}" silindi.`, 'info');
+    }
+  };
+
   const handleAppEdit = (link) => {
-    setAppForm({ title: link.title || '', url: link.url || '', colour: link.colour || '#161b1f', appdescription: link.appdescription || '', category: link.category || '', icon: link.icon || '' });
+    setAppForm({ 
+      title: link.title || '', 
+      url: link.url || '', 
+      colour: link.colour || '#161b1f', 
+      appdescription: link.appdescription || '', 
+      category: link.category || '', 
+      icon: link.icon || '' 
+    });
     setAppEditId(link.id);
   };
 
   // --- TAG HANDLERS ---
   const handleTagSubmit = () => {
-    if (!tagForm.title) return;
+    if (!tagForm.title) {
+      showToast('Kategori adı zorunludur.', 'error');
+      return;
+    }
     if (tagEditId) {
       saveTags(tags.map(t => t.id === tagEditId ? { ...tagForm, id: tagEditId } : t));
       setTagEditId(null);
@@ -124,7 +184,16 @@ const Admin = () => {
     }
     setTagForm({ title: '', colour: '#161b22' });
   };
-  const handleTagDelete = (id) => saveTags(tags.filter(t => t.id !== id));
+
+  const handleTagDelete = (id) => {
+    const target = tags.find(t => t.id === id);
+    const title = target ? target.title : 'Bu kategoriyi';
+    if (window.confirm(`"${title}" kategorisini silmek istediğinize emin misiniz?`)) {
+      saveTags(tags.filter(t => t.id !== id));
+      showToast(`"${title}" kategorisi silindi.`, 'info');
+    }
+  };
+
   const handleTagEdit = (tag) => {
     setTagForm({ title: tag.title || '', colour: tag.colour || '#161b22' });
     setTagEditId(tag.id);
@@ -132,13 +201,21 @@ const Admin = () => {
 
   // --- USER HANDLERS ---
   const handleUserSubmit = () => {
-    if (!newUserForm.username) return;
+    if (!newUserForm.username) {
+      showToast('Kullanıcı adı gerekli.', 'error');
+      return;
+    }
     
     if (userEditOldUsername) {
       fetch(`${apiUrl}/users`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldUsername: userEditOldUsername, newUsername: newUserForm.username, newPassword: newUserForm.password, role: newUserForm.role })
+        body: JSON.stringify({ 
+          oldUsername: userEditOldUsername, 
+          newUsername: newUserForm.username, 
+          newPassword: newUserForm.password, 
+          role: newUserForm.role 
+        })
       })
       .then(r => r.json())
       .then(data => {
@@ -146,49 +223,59 @@ const Admin = () => {
           if (newUserForm.password) {
             setLastShared({ username: newUserForm.username, password: newUserForm.password });
           }
-          alert('Kullanıcı güncellendi!');
+          showToast('Kullanıcı başarıyla güncellendi!', 'success');
           setUserEditOldUsername(null);
-          setNewUserForm({ username: '', password: '' });
+          setNewUserForm({ username: '', password: '', role: 'user' });
           fetchUsers();
         } else {
-          alert(data.error || 'Hata');
+          showToast(data.error || 'İşlem başarısız.', 'error');
         }
       })
-      .catch(e => alert('Hata: ' + e));
+      .catch(e => showToast('Hata: ' + e.message, 'error'));
     } else {
-      if (!newUserForm.password) return;
+      if (!newUserForm.password) {
+        showToast('Şifre belirlemelisiniz.', 'error');
+        return;
+      }
       fetch(`${apiUrl}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newUsername: newUserForm.username, newPassword: newUserForm.password, role: newUserForm.role })
+        body: JSON.stringify({ 
+          newUsername: newUserForm.username, 
+          newPassword: newUserForm.password, 
+          role: newUserForm.role 
+        })
       })
       .then(r => r.json())
       .then(data => {
         if (data.success) {
           setLastShared({ username: newUserForm.username, password: newUserForm.password });
-          alert('Kullanıcı oluşturuldu!');
-          setNewUserForm({ username: '', password: '' });
+          showToast('Kullanıcı hesabı oluşturuldu!', 'success');
+          setNewUserForm({ username: '', password: '', role: 'user' });
           fetchUsers();
         } else {
-          alert(data.error || 'Hata');
+          showToast(data.error || 'İşlem başarısız.', 'error');
         }
       })
-      .catch(e => alert('Hata: ' + e));
+      .catch(e => showToast('Hata: ' + e.message, 'error'));
     }
   };
 
   const handleUserDelete = (username) => {
-    if(confirm(`${username} kullanıcısını silmek istediğinize emin misiniz?`)) {
+    if (window.confirm(`${username} kullanıcısını silmek istediğinize emin misiniz?`)) {
       fetch(`${apiUrl}/users/${username}`, { method: 'DELETE' })
         .then(r => r.json())
         .then(data => {
-          if(data.success) fetchUsers();
-          else alert(data.error);
-        });
+          if (data.success) {
+            fetchUsers();
+            showToast(`${username} hesabı silindi.`, 'info');
+          } else {
+            showToast(data.error || 'Silinemedi.', 'error');
+          }
+        })
+        .catch(e => showToast('Hata: ' + e.message, 'error'));
     }
   };
-
-
 
   const handleUserEdit = (u) => {
     setUserEditOldUsername(u.username);
@@ -196,13 +283,38 @@ const Admin = () => {
   };
 
   const sendWhatsApp = (u, p) => {
-    const text = `GölgeSiber Yatırım Portalı'na hoş geldin! 🚀\n\nGiriş Adresi: http://${window.location.host}\nKullanıcı Adı: ${u}\nŞifre: ${p}\n\nGiriş yapıp kendi portföyünü oluşturmaya başlayabilirsin!`;
+    const text = `Gölge Dashboard erişim bilgileriniz: 🚀\n\nAdres: http://${window.location.host}\nKullanıcı: ${u}\nŞifre: ${p}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px' }}>
+    <div style={{ padding: '20px', maxWidth: '1200px', position: 'relative' }}>
+      
+      {/* Toast Notification Banner */}
+      {toast && (
+        <div 
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            zIndex: 9999,
+            padding: '12px 24px',
+            borderRadius: '8px',
+            background: toast.type === 'error' ? 'rgba(255, 68, 68, 0.95)' : (toast.type === 'info' ? 'rgba(0, 229, 200, 0.95)' : 'rgba(0, 255, 102, 0.95)'),
+            color: '#000',
+            fontWeight: 'bold',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            animation: 'fadeIn 0.2s ease-in-out'
+          }}
+        >
+          <span>{toast.type === 'error' ? '⚠️' : (toast.type === 'info' ? 'ℹ️' : '✅')}</span>
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       <h1 style={{ color: 'var(--neon-cyan)', textShadow: '0 0 15px rgba(0,229,200,0.5)', letterSpacing: '2px' }}>
         ⚙️ SİSTEM YÖNETİMİ
       </h1>
@@ -217,16 +329,16 @@ const Admin = () => {
 
       {activeTab === 'tags' && (
         <div>
-          <div className="glass-panel" style={{ marginBottom: '30px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <input placeholder="Kategori Adı (Örn: ☁️ Bulut)" value={tagForm.title} onChange={e => setTagForm({...tagForm, title: e.target.value})} style={{...inputStyle, flex: 1}} />
-            <input type="color" value={tagForm.colour} onChange={e => setTagForm({...tagForm, colour: e.target.value})} style={{...inputStyle, padding: '0', width: '50px', height: '40px'}} title="Etiket Rengi" />
+          <div className="glass-panel" style={{ marginBottom: '30px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input placeholder="Kategori Adı (Örn: ☁️ Bulut Servisleri)" value={tagForm.title} onChange={e => setTagForm({...tagForm, title: e.target.value})} style={{...inputStyle, flex: 1, minWidth: '220px'}} />
+            <input type="color" value={tagForm.colour} onChange={e => setTagForm({...tagForm, colour: e.target.value})} style={{...inputStyle, padding: '0', width: '50px', height: '40px', cursor: 'pointer'}} title="Kategori Rengi" />
             <button onClick={handleTagSubmit} style={btnStyle} className="hover-pulse">{tagEditId ? '💾 GÜNCELLE' : '➕ EKLE'}</button>
             {tagEditId && <button onClick={() => { setTagEditId(null); setTagForm({ title: '', colour: '#161b22' }); }} style={{...btnStyle, color: 'var(--text-muted)'}}>İPTAL</button>}
           </div>
 
           <div style={{ display: 'grid', gap: '10px' }}>
             {tags.map(tag => (
-              <div key={tag.id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 20px', borderLeft: `5px solid ${tag.colour !== '#161b22' ? tag.colour : 'var(--neon-cyan)'}` }}>
+              <div key={tag.id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderLeft: `5px solid ${tag.colour !== '#161b22' ? tag.colour : 'var(--neon-cyan)'}` }}>
                 <span style={{ fontWeight: 'bold', color: 'var(--text-light)', fontSize: '18px' }}>{tag.title}</span>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={() => handleTagEdit(tag)} style={{...btnStyle, borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)'}}>✏️ DÜZENLE</button>
@@ -243,13 +355,13 @@ const Admin = () => {
           <div className="glass-panel" style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <input placeholder="Başlık (Örn: AdGuard)" value={appForm.title} onChange={e => setAppForm({...appForm, title: e.target.value})} style={{...inputStyle, flex: 1}} />
-              <input placeholder="URL (http://...)" value={appForm.url} onChange={e => setAppForm({...appForm, url: e.target.value})} style={{...inputStyle, flex: 2}} />
-              <select value={appForm.category} onChange={e => setAppForm({...appForm, category: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer'}}>
+              <input placeholder="Başlık (Örn: Proxmox VE)" value={appForm.title} onChange={e => setAppForm({...appForm, title: e.target.value})} style={{...inputStyle, flex: 1, minWidth: '180px'}} />
+              <input placeholder="URL (http://...)" value={appForm.url} onChange={e => setAppForm({...appForm, url: e.target.value})} style={{...inputStyle, flex: 2, minWidth: '220px'}} />
+              <select value={appForm.category} onChange={e => setAppForm({...appForm, category: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer', minWidth: '150px'}}>
                   <option value="">-- Kategori --</option>
                   {tags.map(t => <option key={t.id} value={t.title}>{t.title}</option>)}
               </select>
-              <input type="color" value={appForm.colour} onChange={e => setAppForm({...appForm, colour: e.target.value})} style={{...inputStyle, padding: '0', width: '50px', height: '40px'}} title="Renk" />
+              <input type="color" value={appForm.colour} onChange={e => setAppForm({...appForm, colour: e.target.value})} style={{...inputStyle, padding: '0', width: '50px', height: '40px', cursor: 'pointer'}} title="Renk" />
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -258,7 +370,7 @@ const Admin = () => {
                   <img 
                     src={appForm.icon.startsWith('http') ? appForm.icon : `${backendUrl}${appForm.icon.startsWith('/') ? '' : '/'}${appForm.icon}`} 
                     alt="icon" 
-                    style={{ width: '32px', height: '32px', borderRadius: '5px' }} 
+                    style={{ width: '32px', height: '32px', borderRadius: '5px', objectFit: 'contain' }} 
                     onError={(e) => { 
                       if (e.target.dataset.failed) return;
                       e.target.dataset.failed = true;
@@ -280,7 +392,7 @@ const Admin = () => {
                 </button>
               </div>
 
-              <input placeholder="Kısa Açıklama" value={appForm.appdescription} onChange={e => setAppForm({...appForm, appdescription: e.target.value})} style={{...inputStyle, flex: 1}} />
+              <input placeholder="Kısa Açıklama" value={appForm.appdescription} onChange={e => setAppForm({...appForm, appdescription: e.target.value})} style={{...inputStyle, flex: 1, minWidth: '200px'}} />
               
               <button onClick={handleAppSubmit} style={{...btnStyle, marginLeft: 'auto'}} className="hover-pulse">{appEditId ? '💾 GÜNCELLE' : '➕ EKLE'}</button>
               {appEditId && <button onClick={() => { setAppEditId(null); setAppForm({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '' }); }} style={{...btnStyle, color: 'var(--text-muted)', borderColor: 'var(--text-muted)'}}>İPTAL</button>}
@@ -305,7 +417,7 @@ const Admin = () => {
                     />
                   ) : (
                     <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: link.colour !== '#161b1f' ? link.colour : 'rgba(0,229,200,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', fontWeight: 'bold' }}>
-                      {link.title.substring(0, 2).toUpperCase()}
+                      {(link.title || 'U').substring(0, 2).toUpperCase()}
                     </div>
                   )}
                   <div>
@@ -326,28 +438,26 @@ const Admin = () => {
         </div>
       )}
 
-
-
       {activeTab === 'users' && isAdmin && (
         <div>
           <div className="glass-panel" style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <input placeholder="Kullanıcı Adı" value={newUserForm.username} onChange={e => setNewUserForm({...newUserForm, username: e.target.value})} style={{...inputStyle, flex: 1}} />
-                <input placeholder={userEditOldUsername ? "Yeni Şifre (Değişmeyecekse boş)" : "Şifre Belirleyin"} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} style={{...inputStyle, flex: 1}} />
-                <select value={newUserForm.role || 'user'} onChange={e => setNewUserForm({...newUserForm, role: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer'}}>
-                  <option value="user">Kullanıcı (Sadece Dashboard)</option>
-                  <option value="admin">Süper Admin</option>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input placeholder="Kullanıcı Adı" value={newUserForm.username} onChange={e => setNewUserForm({...newUserForm, username: e.target.value})} style={{...inputStyle, flex: 1, minWidth: '150px'}} />
+                <input placeholder={userEditOldUsername ? "Yeni Şifre (Değişmeyecekse boş)" : "Şifre Belirleyin"} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} style={{...inputStyle, flex: 1, minWidth: '150px'}} />
+                <select value={newUserForm.role || 'user'} onChange={e => setNewUserForm({...newUserForm, role: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer', minWidth: '180px'}}>
+                  <option value="user">Standart Kullanıcı</option>
+                  <option value="admin">Sistem Yöneticisi (Admin)</option>
                 </select>
                 <button onClick={handleUserSubmit} style={btnStyle} className="hover-pulse">
                 {userEditOldUsername ? '💾 GÜNCELLE' : '➕ KULLANICI OLUŞTUR'}
                 </button>
-                {userEditOldUsername && <button onClick={() => { setUserEditOldUsername(null); setNewUserForm({ username: '', password: '' }); }} style={{...btnStyle, color: 'var(--text-muted)'}}>İPTAL</button>}
+                {userEditOldUsername && <button onClick={() => { setUserEditOldUsername(null); setNewUserForm({ username: '', password: '', role: 'user' }); }} style={{...btnStyle, color: 'var(--text-muted)'}}>İPTAL</button>}
             </div>
             {lastShared && (
-                <div style={{ padding: '10px', background: 'rgba(37, 211, 102, 0.1)', border: '1px solid #25D366', borderRadius: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: '10px', background: 'rgba(37, 211, 102, 0.1)', border: '1px solid #25D366', borderRadius: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                     <div>
-                        <strong style={{ color: '#25D366' }}>Tebrikler!</strong> İşlem başarılı.
-                        <span style={{ marginLeft: '10px', color: 'var(--text-light)' }}>({lastShared.username} / {lastShared.password})</span>
+                        <strong style={{ color: '#25D366' }}>Hesap Hazır:</strong>
+                        <span style={{ marginLeft: '10px', color: 'var(--text-light)' }}>{lastShared.username} / {lastShared.password}</span>
                     </div>
                     <button onClick={() => sendWhatsApp(lastShared.username, lastShared.password)} style={{...btnStyle, borderColor: '#25D366', color: '#25D366'}}>
                         💬 BİLGİLERİ WHATSAPP İLE GÖNDER
@@ -358,15 +468,15 @@ const Admin = () => {
 
           <div style={{ display: 'grid', gap: '10px' }}>
             {usersList.map((u, i) => (
-              <div key={i} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 20px', borderLeft: `5px solid ${u.role === 'admin' ? 'var(--neon-red)' : 'var(--neon-cyan)'}` }}>
+              <div key={i} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderLeft: `5px solid ${u.role === 'admin' ? 'var(--neon-red)' : 'var(--neon-cyan)'}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <span style={{ fontWeight: 'bold', color: 'var(--text-light)', fontSize: '18px' }}>👤 {u.username}</span>
                     <span style={{ color: 'var(--text-muted)', fontSize: '12px', background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '4px' }}>
-                      Rol: {u.role === 'admin' ? 'Süper Admin' : 'Kullanıcı'}
+                      Rol: {u.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
                     </span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => sendWhatsApp(u.username, 'Mevcut Şifreniz (Güvenlik gereği gizlenmiştir)')} style={{...btnStyle, borderColor: '#25D366', color: '#25D366', padding: '5px 10px', fontSize: '12px'}}>💬 WHATSAPP</button>
+                    <button onClick={() => sendWhatsApp(u.username, '(Güvenlik gereği gizlenmiştir)')} style={{...btnStyle, borderColor: '#25D366', color: '#25D366', padding: '5px 10px', fontSize: '12px'}}>💬 WHATSAPP</button>
                     <button onClick={() => handleUserEdit(u)} style={{...btnStyle, borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)', padding: '5px 10px', fontSize: '12px'}}>✏️ DÜZENLE</button>
                     {u.role !== 'admin' && (
                         <button onClick={() => handleUserDelete(u.username)} style={{...btnStyle, borderColor: 'var(--neon-red)', color: 'var(--neon-red)', padding: '5px 10px', fontSize: '12px'}}>🗑️ SİL</button>
@@ -471,9 +581,9 @@ const Admin = () => {
             💾 Yedekleme ve Geri Yükleme
           </h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
-            Sistemdeki tüm kısayollarınızı, etiketlerinizi ve ayarlarınızı tek bir JSON dosyası olarak bilgisayarınıza indirebilir veya yükleyebilirsiniz.
+            Sistemdeki tüm kısayollarınızı, kategorilerinizi ve tercihlerinizi tek bir JSON dosyası olarak indirebilir veya geri yükleyebilirsiniz.
           </p>
-          <div style={{ display: 'flex', gap: '20px' }}>
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
             <button 
               onClick={() => {
                 const token = localStorage.getItem('golgeToken');
@@ -486,9 +596,10 @@ const Admin = () => {
                     a.href = url;
                     a.download = `golge_backup_${new Date().toISOString().split('T')[0]}.json`;
                     a.click();
-                  }).catch(e => alert("Yedekleme başarısız oldu."));
+                    showToast('Yedek başarıyla indirildi.', 'success');
+                  }).catch(e => showToast("Yedekleme başarısız: " + e.message, 'error'));
               }} 
-              style={{...btnStyle, padding: '15px 30px', fontSize: '16px', background: 'rgba(0,229,200,0.1)'}}
+              style={{...btnStyle, padding: '12px 24px', fontSize: '15px', background: 'rgba(0,229,200,0.1)'}}
             >
               📥 SİSTEMİ YEDEKLE (EXPORT)
             </button>
@@ -504,7 +615,7 @@ const Admin = () => {
                 reader.onload = (event) => {
                   try {
                     const data = JSON.parse(event.target.result);
-                    if (confirm('Tüm mevcut verileriniz silinip yedeğiniz yüklenecektir. Emin misiniz?')) {
+                    if (window.confirm('Mevcut ayarlar ve linkler silinip bu yedek yüklenecektir. Onaylıyor musunuz?')) {
                       const token = localStorage.getItem('golgeToken');
                       fetch(`${apiUrl}/import`, {
                         method: 'POST',
@@ -512,15 +623,15 @@ const Admin = () => {
                         body: JSON.stringify(data)
                       }).then(r => r.json()).then(res => {
                         if (res.success) {
-                          alert("Yedek başarıyla yüklendi! Sayfa yenileniyor...");
-                          window.location.reload();
+                          showToast("Yedek yüklendi! Yenileniyor...", 'success');
+                          setTimeout(() => window.location.reload(), 1000);
                         } else {
-                          alert("Hata oluştu.");
+                          showToast("Yükleme başarısız.", 'error');
                         }
                       });
                     }
                   } catch (e) {
-                    alert("Geçersiz yedek dosyası!");
+                    showToast("Geçersiz JSON dosyası!", 'error');
                   }
                 };
                 reader.readAsText(file);
@@ -528,7 +639,7 @@ const Admin = () => {
             />
             <button 
               onClick={() => document.getElementById('importInput').click()} 
-              style={{...btnStyle, padding: '15px 30px', fontSize: '16px', borderColor: 'var(--neon-red)', color: 'var(--neon-red)'}}
+              style={{...btnStyle, padding: '12px 24px', fontSize: '15px', borderColor: 'var(--neon-red)', color: 'var(--neon-red)'}}
             >
               📤 YEDEK YÜKLE (IMPORT)
             </button>

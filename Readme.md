@@ -1,32 +1,32 @@
 # Gölge Siber Dashboard 🚞
 
-**Gölge Dashboard**, yerel ağ altyapınızı, kişisel bağlantılarınızı ve finansal verilerinizi tek bir merkezden güvenli bir şekilde yönetmenizi sağlayan, tamamen özelleştirilmiş ve modern bir yönetim platformudur.
+**Gölge Dashboard**, yerel ağınızdaki tüm sunucu, servis ve uygulamalarınızı tek bir merkezden güvenli bir şekilde yönetmenizi sağlayan, modern ve cam efektli (Glassmorphism) yönetim platformudur.
 
 ---
 
-## Temel Özellikler
+## 🚀 Temel Özellikler
 
-- **Sistem Merkezi (Home):** Sık kullanılan yerel ve harici web uygulamalarına (Hızlı Linkler) kategorize edilmiş erişim. Hava durumu, RSS haber beslemeleri, sistem saati ve dinamik arama motoru widget'ları.
-- **Finans Kokpiti:** Kripto piyasaları için "Korku ve Açgözlülük Endeksi (Fear & Greed)", Long/Short oranları, Döviz/Kripto dönüştürücü ve borsa anomali uyarı modülleri.
-- **Gelişmiş Ağ Yönetimi:** Proxmox ve OPNsense altyapınız için detaylı VLAN ve cihaz takibi. Otomatik IP/Subnet doğrulaması, port yönetimi, servis notları ve **Otomatik Topoloji Haritası (React Flow)**.
-- **Admin Paneli:** Sadece yetkili yöneticilerin erişebildiği link tanımlama, ağ cihazı yapılandırma, kullanıcı yetkilendirme ve WhatsApp üzerinden hızlı hesap bildirim araçları.
+- **Sistem Merkezi (Home):** Sık kullanılan yerel ve harici web servislerine (Proxmox, OPNsense, Portainer, NAS vb.) kategorize edilmiş hızlı erişim. Sürükle-bırak ile kartları yeniden sıralama imkanı.
+- **Hızlı Arama (Spotlight / CTRL+K):** Klavyeden `CTRL+K` ile anında açılan, tüm servisler ve linkler arasında akıllı arama paneli.
+- **Kullanım Isı Haritası (Heatmap Analytics):** Günlük, haftalık ve aylık bazda en sık kullandığınız servislerin tıklama ve erişim istatistikleri.
+- **Admin Paneli:** Kategori yönetimi, uygulama ekleme/düzenleme, otomatik logo/ikon çekme, yerel dosya yükleme, kullanıcı yetkilendirme ve tek tıkla WhatsApp erişim paylaşımı.
+- **Yedekleme ve Geri Yükleme (Export / Import):** Tüm sistem kısayollarını, kategorilerini ve kullanıcı tercihlerini tek bir JSON dosyasıyla yedekleme ve geri yükleme.
 
 ---
 
-## Kullanılan Teknolojiler
+## 🛠️ Kullanılan Teknolojiler
 
-- **Frontend:** React, Vite, Vanilla CSS (Cam efekti / Glassmorphism arayüz).
+- **Frontend:** React, Vite, Framer Motion, @dnd-kit (Sürükle-Bırak), Vanilla CSS.
 - **Backend:** Node.js, Express.js.
-- **Web Sunucu & Reverse Proxy:** Nginx (Port 80 üzerinden statik dosyalar ve `/api/` proxy).
-- **Veritabanı:** Güvenli, taşınabilir ve izole JSON tabanlı veri mimarisi (`server/data/` dizini).
-- **Grafik ve Ağ Haritaları:** Ağ topolojisi için `@xyflow/react` kütüphanesi.
+- **Web Sunucu & Proxy:** Nginx (Port 80 üzerinden statik dosyalar ve `/api/` proxy yönlendirmesi).
+- **Veri Mimarisi:** Taşınabilir ve hafif JSON tabanlı veri saklama (`server/data/` dizini).
 - **Süreç Yöneticisi:** PM2.
 
 ---
 
-## Dokümantasyon Rehberleri
+## 📚 Dokümantasyon Rehberleri
 
-Projeyi yönetmek, güncellemek veya detaylarını incelemek için aşağıdaki kılavuzları inceleyebilirsiniz:
+Projeyi yönetmek ve detaylarını incelemek için aşağıdaki kılavuzları inceleyebilirsiniz:
 
 1. [Kurulum ve Güncelleme Rehberi](./docs/Kurulum_ve_Guncelleme.md)
 2. [Sistem ve Güvenlik Mimarisi](./docs/Mimari_ve_Guvenlik.md)
@@ -35,4 +35,4 @@ Projeyi yönetmek, güncellemek veya detaylarını incelemek için aşağıdaki 
 
 ---
 
-*Bu dokümantasyon, yerel Proxmox LXC ortamınızla tam uyumlu olacak şekilde güncellenmiştir.*
+*Bu proje yerel ağ (LAN) güvenliği ve Proxmox LXC ortamıyla tam uyumludur.*
