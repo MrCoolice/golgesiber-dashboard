@@ -255,7 +255,7 @@ const SortableLinkCard = ({
                   if (title.includes('matomo')) {
                     count = matomoStats.total;
                     label = 'Toplam Ziyaret';
-                  } else if (url.includes('golgesiber.com') || title.includes('golgesiber')) {
+                  } else if ((title.includes('gölgesiber') || title.includes('golgesiber')) && !title.includes('dashboard') && !url.includes('nc.') && !url.includes('status.')) {
                     count = matomoStats.sites?.['4'];
                   } else if (url.includes('golgekitabevi.com') || title.includes('kitabevi')) {
                     count = matomoStats.sites?.['2'];
