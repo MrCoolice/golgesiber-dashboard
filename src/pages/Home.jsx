@@ -15,10 +15,8 @@ import {
 } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Info, Star, ExternalLink, Network, FileText, Activity } from 'lucide-react';
+import { Info, Star, ExternalLink, Activity } from 'lucide-react';
 import InfoDrawer from '../components/InfoDrawer';
-import QuickNotesDrawer from '../components/QuickNotesDrawer';
-import MiniIpamModal from '../components/MiniIpamModal';
 import { RenderHomelabIcon, matchHomelabIcon } from '../utils/homelabIcons';
 
 const SortableLinkCard = ({ 
@@ -280,8 +278,6 @@ const Home = () => {
   const [links, setLinks] = useState([]);
   const [error, setError] = useState(false);
   const [selectedInfoLink, setSelectedInfoLink] = useState(null);
-  const [isQuickNotesOpen, setIsQuickNotesOpen] = useState(false);
-  const [isIpamOpen, setIsIpamOpen] = useState(false);
   const [pinnedIds, setPinnedIds] = useState([]);
   const [matomoVisits, setMatomoVisits] = useState(null);
   const backendUrl = `http://${window.location.hostname}:3001`;
@@ -416,63 +412,14 @@ const Home = () => {
   return (
     <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
       
-      {/* Header & Quick Action Buttons */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '30px' }}>
-        <div>
-          <h1 style={{ color: 'var(--neon-cyan)', textShadow: '0 0 15px rgba(0,229,200,0.5)', letterSpacing: '2px', margin: '0 0 8px 0' }}>
-            SİSTEM MERKEZİ
-          </h1>
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-            Arama yapmak için <b>CTRL+K</b> kullanın. Kartları sürükleyip sıralayabilir, <b>ℹ️</b> butonuna tıklayarak ağ notlarını görüntüleyebilirsiniz.
-          </p>
-        </div>
-
-        {/* Quick Homelab Tools Pills */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button
-            onClick={() => setIsIpamOpen(true)}
-            style={{
-              background: 'rgba(0, 229, 200, 0.1)',
-              border: '1px solid var(--border-cyan)',
-              color: 'var(--neon-cyan)',
-              borderRadius: '8px',
-              padding: '8px 14px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-            title="Subnet IP Adres Defterini Aç"
-          >
-            <Network size={15} />
-            Subnet IPAM
-          </button>
-
-          <button
-            onClick={() => setIsQuickNotesOpen(true)}
-            style={{
-              background: 'rgba(0, 255, 102, 0.08)',
-              border: '1px solid rgba(0, 255, 102, 0.25)',
-              color: 'var(--neon-green)',
-              borderRadius: '8px',
-              padding: '8px 14px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-            title="Hızlı Not Defterini Aç"
-          >
-            <FileText size={15} />
-            Hızlı Notlar
-          </button>
-        </div>
+      {/* Header */}
+      <div style={{ marginBottom: '35px', paddingRight: '280px' }}>
+        <h1 style={{ color: 'var(--neon-cyan)', textShadow: '0 0 15px rgba(0,229,200,0.5)', letterSpacing: '2px', margin: '0 0 8px 0' }}>
+          SİSTEM MERKEZİ
+        </h1>
+        <p style={{ color: 'var(--text-muted)', margin: 0, lineHeight: '1.5' }}>
+          Arama yapmak için <b>CTRL+K</b> kullanın. Kartları sürükleyip sıralayabilir, sol menüden <b>IPAM</b> ve <b>Hızlı Notlar</b>'a ulaşabilirsiniz.
+        </p>
       </div>
       
       {error && (
@@ -487,19 +434,6 @@ const Home = () => {
         onClose={() => setSelectedInfoLink(null)} 
         link={selectedInfoLink} 
         backendUrl={backendUrl} 
-      />
-
-      {/* Quick Notes Scratchpad Drawer */}
-      <QuickNotesDrawer
-        isOpen={isQuickNotesOpen}
-        onClose={() => setIsQuickNotesOpen(false)}
-      />
-
-      {/* Mini IPAM Modal */}
-      <MiniIpamModal
-        isOpen={isIpamOpen}
-        onClose={() => setIsIpamOpen(false)}
-        links={links}
       />
 
       <div style={{ paddingBottom: '120px' }}>

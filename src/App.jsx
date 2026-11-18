@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Terminal, Hexagon, Settings, LogOut } from 'lucide-react';
+import { Terminal, Hexagon, Settings, LogOut, Network, FileText } from 'lucide-react';
 import Home from './pages/Home';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
 import SpotlightSearch from './components/SpotlightSearch';
 import DynamicBackground from './components/DynamicBackground';
 import CyberStatusBadge from './components/CyberStatusBadge';
+import QuickNotesDrawer from './components/QuickNotesDrawer';
+import MiniIpamModal from './components/MiniIpamModal';
 import './index.css';
 
-const Sidebar = ({ handleLogout, userRole }) => {
+const Sidebar = ({ handleLogout, userRole, onOpenIpam, onOpenQuickNotes }) => {
   const location = useLocation();
   
-  const navItems = [
-    { path: '/', icon: <Terminal size={24} />, label: 'Sunucular' }
-  ];
-
   return (
     <div className="sidebar" style={{
       width: '80px',
@@ -23,7 +21,7 @@ const Sidebar = ({ handleLogout, userRole }) => {
       position: 'fixed',
       left: 0,
       top: 0,
-      background: 'rgba(6, 13, 31, 0.9)',
+      background: 'rgba(6, 13, 31, 0.94)',
       borderRight: '1px solid var(--border-cyan)',
       display: 'flex',
       flexDirection: 'column',
@@ -31,34 +29,97 @@ const Sidebar = ({ handleLogout, userRole }) => {
       paddingTop: '20px',
       zIndex: 1000
     }}>
-      <div className="sidebar-logo" style={{ color: 'var(--neon-cyan)', marginBottom: '40px' }}>
+      <div className="sidebar-logo" style={{ color: 'var(--neon-cyan)', marginBottom: '35px' }}>
         <Hexagon size={32} />
       </div>
       
-      <div className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', alignItems: 'center' }}>
-        {navItems.map(item => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link key={item.path} to={item.path} style={{
-              color: isActive ? 'var(--neon-green)' : 'var(--text-muted)',
-              textDecoration: 'none',
-              padding: '12px',
-              borderRadius: '12px',
-              background: isActive ? 'rgba(0, 255, 102, 0.1)' : 'transparent',
-              border: isActive ? '1px solid var(--border-green)' : '1px solid transparent',
-              transition: 'all 0.3s ease'
-            }} title={item.label}>
-              {item.icon}
-            </Link>
-          )
-        })}
+      <div className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', alignItems: 'center' }}>
+        {/* Ana Sayfa / Sunucular */}
+        <Link 
+          to="/" 
+          style={{
+            color: location.pathname === '/' ? 'var(--neon-green)' : 'var(--text-muted)',
+            textDecoration: 'none',
+            padding: '12px',
+            borderRadius: '12px',
+            background: location.pathname === '/' ? 'rgba(0, 255, 102, 0.1)' : 'transparent',
+            border: location.pathname === '/' ? '1px solid var(--border-green)' : '1px solid transparent',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }} 
+          title="Sunucular & Servisler"
+        >
+          <Terminal size={24} />
+        </Link>
+
+        {/* Subnet IPAM Butonu */}
+        <div 
+          onClick={onOpenIpam}
+          style={{
+            color: 'var(--text-muted)',
+            padding: '12px',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = 'var(--neon-cyan)';
+            e.currentTarget.style.background = 'rgba(0, 229, 200, 0.1)';
+            e.currentTarget.style.border = '1px solid var(--border-cyan)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = 'var(--text-muted)';
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.border = '1px solid transparent';
+          }}
+          title="Subnet IP Adres Defteri (Mini IPAM)"
+        >
+          <Network size={24} />
+        </div>
+
+        {/* Hızlı Notlar Butonu */}
+        <div 
+          onClick={onOpenQuickNotes}
+          style={{
+            color: 'var(--text-muted)',
+            padding: '12px',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = 'var(--neon-green)';
+            e.currentTarget.style.background = 'rgba(0, 255, 102, 0.1)';
+            e.currentTarget.style.border = '1px solid var(--border-green)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = 'var(--text-muted)';
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.border = '1px solid transparent';
+          }}
+          title="Hızlı Not Defteri (Scratchpad)"
+        >
+          <FileText size={24} />
+        </div>
       </div>
 
-      <div className="sidebar-bottom" style={{ marginTop: 'auto', marginBottom: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
+      <div className="sidebar-bottom" style={{ marginTop: 'auto', marginBottom: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
         {userRole === 'admin' && (
           <Link to="/admin" style={{
               color: location.pathname === '/admin' ? 'var(--neon-green)' : 'var(--text-muted)',
-              padding: '12px'
+              padding: '12px',
+              borderRadius: '12px',
+              background: location.pathname === '/admin' ? 'rgba(0, 255, 102, 0.1)' : 'transparent',
+              border: location.pathname === '/admin' ? '1px solid var(--border-green)' : '1px solid transparent',
+              transition: 'all 0.3s ease'
           }} title="Admin Panel">
             <Settings size={24} />
           </Link>
@@ -74,6 +135,8 @@ const Sidebar = ({ handleLogout, userRole }) => {
 const App = () => {
   const [auth, setAuth] = useState(null);
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+  const [isIpamOpen, setIsIpamOpen] = useState(false);
+  const [isQuickNotesOpen, setIsQuickNotesOpen] = useState(false);
   const [links, setLinks] = useState([]);
   const [preferences, setPreferences] = useState({ theme: 'dark', dynamicBackground: true, hackerQuotes: true });
   
@@ -142,8 +205,24 @@ const App = () => {
         links={links} 
         theme={preferences.theme} 
       />
+      {/* Global IPAM Modal */}
+      <MiniIpamModal 
+        isOpen={isIpamOpen} 
+        onClose={() => setIsIpamOpen(false)} 
+        links={links} 
+      />
+      {/* Global Quick Notes Drawer */}
+      <QuickNotesDrawer 
+        isOpen={isQuickNotesOpen} 
+        onClose={() => setIsQuickNotesOpen(false)} 
+      />
       <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar handleLogout={handleLogout} userRole={auth.user.role} />
+        <Sidebar 
+          handleLogout={handleLogout} 
+          userRole={auth.user.role} 
+          onOpenIpam={() => setIsIpamOpen(true)}
+          onOpenQuickNotes={() => setIsQuickNotesOpen(true)}
+        />
         <div className="main-content" style={{ marginLeft: '80px', flex: 1, padding: '20px' }}>
           <Routes>
             <Route path="/" element={<Home />} />
