@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { HOMELAB_ICONS, RenderHomelabIcon, matchHomelabIcon } from '../utils/homelabIcons';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('apps');
@@ -14,9 +15,20 @@ const Admin = () => {
   const [heatmapFilter, setHeatmapFilter] = useState('all');
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   
-  const [appForm, setAppForm] = useState({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '' });
+  const [appForm, setAppForm] = useState({ 
+    title: '', 
+    url: '', 
+    colour: '#161b1f', 
+    appdescription: '', 
+    category: '', 
+    icon: '',
+    ip: '',
+    port: '',
+    notes: ''
+  });
   const [appEditId, setAppEditId] = useState(null);
   const [fetchingIcon, setFetchingIcon] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const fileInputRef = useRef(null);
 
   const [tagForm, setTagForm] = useState({ title: '', colour: '#161b22' });
@@ -93,6 +105,25 @@ const Admin = () => {
       .catch(e => showToast('Kaydedilemedi: ' + e.message, 'error'));
   };
 
+  // Auto-detect Homelab icon when typing title or URL if no icon is explicitly set
+  const handleTitleChange = (val) => {
+    const nextForm = { ...appForm, title: val };
+    if (!appForm.icon || appForm.icon.startsWith('homelab:')) {
+      const matched = matchHomelabIcon(val + ' ' + appForm.url);
+      if (matched) nextForm.icon = `homelab:${matched}`;
+    }
+    setAppForm(nextForm);
+  };
+
+  const handleUrlChange = (val) => {
+    const nextForm = { ...appForm, url: val };
+    if (!appForm.icon || appForm.icon.startsWith('homelab:')) {
+      const matched = matchHomelabIcon(appForm.title + ' ' + val);
+      if (matched) nextForm.icon = `homelab:${matched}`;
+    }
+    setAppForm(nextForm);
+  };
+
   // --- ICON HANDLERS ---
   const handleFetchIcon = () => {
     const searchUrl = window.prompt("İkonunu çekmek istediğiniz sitenin adresini yazın (Örn: adguard.com):", appForm.url || "");
@@ -146,7 +177,17 @@ const Admin = () => {
     } else {
       saveLinks([...links, { ...appForm, id: Date.now().toString() }]);
     }
-    setAppForm({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '' });
+    setAppForm({ 
+      title: '', 
+      url: '', 
+      colour: '#161b1f', 
+      appdescription: '', 
+      category: '', 
+      icon: '',
+      ip: '',
+      port: '',
+      notes: ''
+    });
   };
 
   const handleAppDelete = (id) => {
@@ -165,7 +206,10 @@ const Admin = () => {
       colour: link.colour || '#161b1f', 
       appdescription: link.appdescription || '', 
       category: link.category || '', 
-      icon: link.icon || '' 
+      icon: link.icon || '',
+      ip: link.ip || '',
+      port: link.port || '',
+      notes: link.notes || ''
     });
     setAppEditId(link.id);
   };
@@ -287,6 +331,9 @@ const Admin = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  const isFormHomelab = appForm.icon && appForm.icon.startsWith('homelab:');
+  const formHomelabKey = isFormHomelab ? appForm.icon.replace('homelab:', '') : null;
+
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', position: 'relative' }}>
       
@@ -315,17 +362,300 @@ const Admin = () => {
         </div>
       )}
 
+      {/* Homelab Icon Picker Modal */}
+      {showIconPicker && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 10000,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setShowIconPicker(false)}
+        >
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: '650px',
+              maxHeight: '80vh',
+              background: '#0a1329',
+              border: '1px solid var(--border-cyan)',
+              borderRadius: '12px',
+              padding: '24px',
+              overflowY: 'auto',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, color: 'var(--neon-cyan)', fontSize: '1.2rem' }}>⚡ Dahili Homelab İkon Kütüphanesi</h3>
+              <button 
+                onClick={() => setShowIconPicker(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '18px' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '12px' }}>
+              {Object.entries(HOMELAB_ICONS).map(([key, item]) => (
+                <div 
+                  key={key}
+                  onClick={() => {
+                    setAppForm({ ...appForm, icon: `homelab:${key}` });
+                    setShowIconPicker(false);
+                    showToast(`"${item.name}" ikonu seçildi.`, 'success');
+                  }}
+                  style={{
+                    background: appForm.icon === `homelab:${key}` ? 'rgba(0, 229, 200, 0.2)' : 'rgba(255,255,255,0.03)',
+                    border: appForm.icon === `homelab:${key}` ? '1px solid var(--neon-cyan)' : '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px',
+                    padding: '14px 10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  className="hover-pulse"
+                >
+                  <div style={{ width: '36px', height: '36px' }}>
+                    {item.svg}
+                  </div>
+                  <span style={{ color: 'var(--text-light)', fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>
+                    {item.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 style={{ color: 'var(--neon-cyan)', textShadow: '0 0 15px rgba(0,229,200,0.5)', letterSpacing: '2px' }}>
         ⚙️ SİSTEM YÖNETİMİ
       </h1>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' }}>
-        <button onClick={() => setActiveTab('tags')} style={{ ...tabStyle, background: activeTab === 'tags' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'tags' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>🏷️ KATEGORİLER</button>
         <button onClick={() => setActiveTab('apps')} style={{ ...tabStyle, background: activeTab === 'apps' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'apps' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>💻 UYGULAMALAR</button>
+        <button onClick={() => setActiveTab('tags')} style={{ ...tabStyle, background: activeTab === 'tags' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'tags' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>🏷️ KATEGORİLER</button>
         <button onClick={() => setActiveTab('heatmap')} style={{ ...tabStyle, background: activeTab === 'heatmap' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'heatmap' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>🔥 ISI HARİTASI</button>
         <button onClick={() => setActiveTab('system')} style={{ ...tabStyle, background: activeTab === 'system' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'system' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>⚙️ SİSTEM</button>
         {isAdmin && <button onClick={() => setActiveTab('users')} style={{ ...tabStyle, background: activeTab === 'users' ? 'rgba(0,229,200,0.2)' : 'transparent', borderColor: activeTab === 'users' ? 'var(--neon-cyan)' : 'var(--border-cyan)' }}>👥 KULLANICILAR</button>}
       </div>
+
+      {activeTab === 'apps' && (
+        <div>
+          <div className="glass-panel" style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            
+            {/* Row 1: Title, URL, Category, Color */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <input 
+                placeholder="Başlık (Örn: Proxmox VE)" 
+                value={appForm.title} 
+                onChange={e => handleTitleChange(e.target.value)} 
+                style={{...inputStyle, flex: 1, minWidth: '180px'}} 
+              />
+              <input 
+                placeholder="Web URL (http://...)" 
+                value={appForm.url} 
+                onChange={e => handleUrlChange(e.target.value)} 
+                style={{...inputStyle, flex: 2, minWidth: '220px'}} 
+              />
+              <select 
+                value={appForm.category} 
+                onChange={e => setAppForm({...appForm, category: e.target.value})} 
+                style={{...inputStyle, flex: 1, cursor: 'pointer', minWidth: '150px'}}
+              >
+                  <option value="">-- Kategori Seç --</option>
+                  {tags.map(t => <option key={t.id} value={t.title}>{t.title}</option>)}
+              </select>
+              <input 
+                type="color" 
+                value={appForm.colour} 
+                onChange={e => setAppForm({...appForm, colour: e.target.value})} 
+                style={{...inputStyle, padding: '0', width: '50px', height: '40px', cursor: 'pointer'}} 
+                title="Vurgu Rengi" 
+              />
+            </div>
+
+            {/* Row 2: IP, Port, Short Description */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <input 
+                placeholder="Yerel IP Adresi (Örn: 10.10.10.50)" 
+                value={appForm.ip} 
+                onChange={e => setAppForm({...appForm, ip: e.target.value})} 
+                style={{...inputStyle, flex: 1, minWidth: '160px'}} 
+              />
+              <input 
+                placeholder="Servis / SSH Portu (Örn: 8006, 22)" 
+                value={appForm.port} 
+                onChange={e => setAppForm({...appForm, port: e.target.value})} 
+                style={{...inputStyle, width: '180px'}} 
+              />
+              <input 
+                placeholder="Kısa Açıklama (Kart üzerinde görünür)" 
+                value={appForm.appdescription} 
+                onChange={e => setAppForm({...appForm, appdescription: e.target.value})} 
+                style={{...inputStyle, flex: 2, minWidth: '220px'}} 
+              />
+            </div>
+
+            {/* Row 3: Icon Selector & Actions */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.3)', padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border-cyan)' }}>
+                {isFormHomelab ? (
+                  <div style={{ width: '32px', height: '32px' }}>
+                    <RenderHomelabIcon iconKey={formHomelabKey} />
+                  </div>
+                ) : appForm.icon ? (
+                  <img 
+                    src={appForm.icon.startsWith('http') ? appForm.icon : `${backendUrl}${appForm.icon.startsWith('/') ? '' : '/'}${appForm.icon}`} 
+                    alt="icon" 
+                    style={{ width: '32px', height: '32px', borderRadius: '5px', objectFit: 'contain' }} 
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div style={{ width: '32px', height: '32px', background: 'var(--border-cyan)', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>İKON</div>
+                )}
+                
+                <button 
+                  type="button"
+                  onClick={() => setShowIconPicker(true)} 
+                  style={{...btnStyle, padding: '5px 12px', fontSize: '12px', background: 'rgba(0,229,200,0.1)'}} 
+                  title="Dahili SVG kütüphanesinden seç"
+                >
+                  ⚡ DAHİLİ İKON SEÇ
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={handleFetchIcon} 
+                  disabled={fetchingIcon} 
+                  style={{...btnStyle, padding: '5px 10px', fontSize: '12px'}} 
+                  title="URL'den otomatik logoyu bul ve indir"
+                >
+                  {fetchingIcon ? '⏳ BULUNUYOR...' : '🔍 LOGO BUL'}
+                </button>
+                
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept="image/*" />
+                <button 
+                  type="button"
+                  onClick={() => fileInputRef.current.click()} 
+                  style={{...btnStyle, padding: '5px 10px', fontSize: '12px', borderColor: 'var(--text-muted)', color: 'var(--text-muted)'}} 
+                  title="Bilgisayardan dosya seç"
+                >
+                  📁 DOSYA YÜKLE
+                </button>
+              </div>
+
+              {appForm.icon && (
+                <button 
+                  type="button"
+                  onClick={() => setAppForm({...appForm, icon: ''})} 
+                  style={{ background: 'transparent', border: 'none', color: 'var(--neon-red)', fontSize: '11px', cursor: 'pointer' }}
+                >
+                  İkonu Sıfırla ✕
+                </button>
+              )}
+            </div>
+
+            {/* Row 4: Detailed Operational Notes */}
+            <div>
+              <textarea 
+                placeholder="Servis Notları & Komutlar (Info Drawer çekmecesinde görünür. Örn: Giriş bilgileri, SSH komutları, konfigürasyon ipuçları...)"
+                value={appForm.notes}
+                onChange={e => setAppForm({...appForm, notes: e.target.value})}
+                rows={3}
+                style={{
+                  ...inputStyle,
+                  width: '100%',
+                  resize: 'vertical',
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  lineHeight: '1.5'
+                }}
+              />
+            </div>
+
+            {/* Submit & Cancel Buttons */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              {appEditId && (
+                <button 
+                  type="button"
+                  onClick={() => { 
+                    setAppEditId(null); 
+                    setAppForm({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '', ip: '', port: '', notes: '' }); 
+                  }} 
+                  style={{...btnStyle, color: 'var(--text-muted)', borderColor: 'var(--text-muted)'}}
+                >
+                  İPTAL
+                </button>
+              )}
+              <button onClick={handleAppSubmit} style={btnStyle} className="hover-pulse">
+                {appEditId ? '💾 DEĞİŞİKLİKLERİ GÜNCELLE' : '➕ YENİ UYGULAMA EKLE'}
+              </button>
+            </div>
+
+          </div>
+
+          {/* Links List */}
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {links.map(link => {
+              const isHomelab = link.icon && link.icon.startsWith('homelab:');
+              const homelabKey = isHomelab ? link.icon.replace('homelab:', '') : null;
+              const autoKey = (!link.icon || link.icon.trim() === '') ? matchHomelabIcon(`${link.title} ${link.url}`) : null;
+
+              return (
+                <div key={link.id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderLeft: `5px solid ${link.colour !== '#161b1f' ? link.colour : 'var(--neon-cyan)'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}>
+                      {isHomelab ? (
+                        <RenderHomelabIcon iconKey={homelabKey} />
+                      ) : link.icon ? (
+                        <img 
+                          src={link.icon.startsWith('http') ? link.icon : `${backendUrl}${link.icon.startsWith('/') ? '' : '/'}${link.icon}`} 
+                          alt="" 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : autoKey ? (
+                        <RenderHomelabIcon iconKey={autoKey} />
+                      ) : (
+                        <span style={{ color: 'var(--neon-cyan)', fontWeight: 'bold' }}>
+                          {(link.title || 'U').substring(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--text-light)', fontSize: '18px' }}>
+                        {link.title} 
+                        {link.category && <span style={{ marginLeft: '10px', fontSize: '10px', background: 'rgba(0,229,200,0.2)', color: 'var(--neon-cyan)', padding: '3px 8px', borderRadius: '12px' }}>{link.category}</span>}
+                        {link.ip && <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--neon-green)', background: 'rgba(0,255,102,0.1)', padding: '2px 8px', borderRadius: '6px', fontFamily: 'monospace' }}>IP: {link.ip}</span>}
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--neon-green)', marginTop: '4px' }}>{link.url}</div>
+                      {link.notes && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px', fontStyle: 'italic' }}>📝 Not mevcut</div>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                      <button onClick={() => handleAppEdit(link)} style={{...btnStyle, borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)'}}>✏️ DÜZENLE</button>
+                      <button onClick={() => handleAppDelete(link.id)} style={{...btnStyle, borderColor: 'var(--neon-red)', color: 'var(--neon-red)'}}>🗑️ SİL</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {activeTab === 'tags' && (
         <div>
@@ -343,94 +673,6 @@ const Admin = () => {
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={() => handleTagEdit(tag)} style={{...btnStyle, borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)'}}>✏️ DÜZENLE</button>
                     <button onClick={() => handleTagDelete(tag.id)} style={{...btnStyle, borderColor: 'var(--neon-red)', color: 'var(--neon-red)'}}>🗑️ SİL</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'apps' && (
-        <div>
-          <div className="glass-panel" style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <input placeholder="Başlık (Örn: Proxmox VE)" value={appForm.title} onChange={e => setAppForm({...appForm, title: e.target.value})} style={{...inputStyle, flex: 1, minWidth: '180px'}} />
-              <input placeholder="URL (http://...)" value={appForm.url} onChange={e => setAppForm({...appForm, url: e.target.value})} style={{...inputStyle, flex: 2, minWidth: '220px'}} />
-              <select value={appForm.category} onChange={e => setAppForm({...appForm, category: e.target.value})} style={{...inputStyle, flex: 1, cursor: 'pointer', minWidth: '150px'}}>
-                  <option value="">-- Kategori --</option>
-                  {tags.map(t => <option key={t.id} value={t.title}>{t.title}</option>)}
-              </select>
-              <input type="color" value={appForm.colour} onChange={e => setAppForm({...appForm, colour: e.target.value})} style={{...inputStyle, padding: '0', width: '50px', height: '40px', cursor: 'pointer'}} title="Renk" />
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.3)', padding: '5px 10px', borderRadius: '5px', border: '1px solid var(--border-cyan)' }}>
-                {appForm.icon ? (
-                  <img 
-                    src={appForm.icon.startsWith('http') ? appForm.icon : `${backendUrl}${appForm.icon.startsWith('/') ? '' : '/'}${appForm.icon}`} 
-                    alt="icon" 
-                    style={{ width: '32px', height: '32px', borderRadius: '5px', objectFit: 'contain' }} 
-                    onError={(e) => { 
-                      if (e.target.dataset.failed) return;
-                      e.target.dataset.failed = true;
-                      e.target.style.display = 'none'; 
-                    }}
-                  />
-                ) : (
-                  <div style={{ width: '32px', height: '32px', background: 'var(--border-cyan)', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>İKON</div>
-                )}
-                
-                <button onClick={handleFetchIcon} disabled={fetchingIcon} style={{...btnStyle, padding: '5px 10px', fontSize: '12px'}} title="URL'den otomatik logoyu bul ve indir">
-                  {fetchingIcon ? '⏳ BULUNUYOR...' : '🔍 LOGOYU BUL'}
-                </button>
-                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>veya</span>
-                
-                <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept="image/*" />
-                <button onClick={() => fileInputRef.current.click()} style={{...btnStyle, padding: '5px 10px', fontSize: '12px', borderColor: 'var(--text-muted)', color: 'var(--text-muted)'}} title="Bilgisayardan dosya seç">
-                  📁 DOSYA YÜKLE
-                </button>
-              </div>
-
-              <input placeholder="Kısa Açıklama" value={appForm.appdescription} onChange={e => setAppForm({...appForm, appdescription: e.target.value})} style={{...inputStyle, flex: 1, minWidth: '200px'}} />
-              
-              <button onClick={handleAppSubmit} style={{...btnStyle, marginLeft: 'auto'}} className="hover-pulse">{appEditId ? '💾 GÜNCELLE' : '➕ EKLE'}</button>
-              {appEditId && <button onClick={() => { setAppEditId(null); setAppForm({ title: '', url: '', colour: '#161b1f', appdescription: '', category: '', icon: '' }); }} style={{...btnStyle, color: 'var(--text-muted)', borderColor: 'var(--text-muted)'}}>İPTAL</button>}
-            </div>
-
-          </div>
-
-          <div style={{ display: 'grid', gap: '10px' }}>
-            {links.map(link => (
-              <div key={link.id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderLeft: `5px solid ${link.colour !== '#161b1f' ? link.colour : 'var(--neon-cyan)'}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  {link.icon ? (
-                    <img 
-                      src={link.icon.startsWith('http') ? link.icon : `${backendUrl}${link.icon.startsWith('/') ? '' : '/'}${link.icon}`} 
-                      alt="" 
-                      style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'contain', background: 'rgba(255,255,255,0.05)' }} 
-                      onError={(e) => { 
-                        if (e.target.dataset.failed) return;
-                        e.target.dataset.failed = true;
-                        e.target.style.display = 'none'; 
-                      }}
-                    />
-                  ) : (
-                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: link.colour !== '#161b1f' ? link.colour : 'rgba(0,229,200,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', fontWeight: 'bold' }}>
-                      {(link.title || 'U').substring(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--text-light)', fontSize: '18px' }}>
-                      {link.title} 
-                      {link.category && <span style={{ marginLeft: '10px', fontSize: '10px', background: 'rgba(0,229,200,0.2)', color: 'var(--neon-cyan)', padding: '3px 8px', borderRadius: '12px' }}>{link.category}</span>}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--neon-green)', marginTop: '5px' }}>{link.url}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => handleAppEdit(link)} style={{...btnStyle, borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)'}}>✏️ DÜZENLE</button>
-                    <button onClick={() => handleAppDelete(link.id)} style={{...btnStyle, borderColor: 'var(--neon-red)', color: 'var(--neon-red)'}}>🗑️ SİL</button>
                 </div>
               </div>
             ))}

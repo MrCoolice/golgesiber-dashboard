@@ -1,19 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search } from 'lucide-react';
+import { RenderHomelabIcon, matchHomelabIcon } from '../utils/homelabIcons';
 
 const SpotlightSearch = ({ isOpen, onClose, links = [], theme = 'dark' }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
 
-  // Filter links based on title, category or url
+  // Filter links based on title, category, url or ip
   const filteredLinks = (links || []).filter(link => {
     const q = query.toLowerCase();
     const titleMatch = (link.title || '').toLowerCase().includes(q);
     const urlMatch = (link.url || '').toLowerCase().includes(q);
     const catMatch = (link.category || '').toLowerCase().includes(q);
-    return titleMatch || urlMatch || catMatch;
+    const ipMatch = (link.ip || '').toLowerCase().includes(q);
+    return titleMatch || urlMatch || catMatch || ipMatch;
   }).slice(0, 8);
 
   useEffect(() => {
@@ -119,7 +121,7 @@ const SpotlightSearch = ({ isOpen, onClose, links = [], theme = 'dark' }) => {
             <input
               ref={inputRef}
               type="text"
-              placeholder="Uygulama, servis veya link ara..."
+              placeholder="Uygulama, IP veya servis ara..."
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -147,7 +149,10 @@ const SpotlightSearch = ({ isOpen, onClose, links = [], theme = 'dark' }) => {
               </div>
             ) : (
               filteredLinks.map((link, index) => {
-                const iconSrc = link.icon 
+                const isHomelab = link.icon && link.icon.startsWith('homelab:');
+                const homelabKey = isHomelab ? link.icon.replace('homelab:', '') : null;
+                const autoKey = (!link.icon || link.icon.trim() === '') ? matchHomelabIcon(`${link.title} ${link.url}`) : null;
+                const iconSrc = (!isHomelab && link.icon) 
                   ? (link.icon.startsWith('http') ? link.icon : `${backendUrl}${link.icon.startsWith('/') ? '' : '/'}${link.icon}`)
                   : null;
 
@@ -166,28 +171,36 @@ const SpotlightSearch = ({ isOpen, onClose, links = [], theme = 'dark' }) => {
                       transition: 'all 0.1s ease'
                     }}
                   >
-                    {iconSrc ? (
-                      <img 
-                        src={iconSrc} 
-                        alt="" 
-                        style={{ width: '28px', height: '28px', marginRight: '16px', borderRadius: '6px', objectFit: 'contain' }}
-                        onError={(e) => { 
-                          if (e.target.dataset.failed) return;
-                          e.target.dataset.failed = true;
-                          e.target.style.display = 'none'; 
-                        }}
-                      />
-                    ) : (
-                      <div style={{ width: '28px', height: '28px', marginRight: '16px', borderRadius: '6px', background: 'rgba(0,229,200,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontSize: '12px', fontWeight: 'bold' }}>
-                        {(link.title || 'U').substring(0, 2).toUpperCase()}
-                      </div>
-                    )}
+                    <div style={{ width: '28px', height: '28px', marginRight: '16px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {isHomelab ? (
+                        <RenderHomelabIcon iconKey={homelabKey} />
+                      ) : iconSrc ? (
+                        <img 
+                          src={iconSrc} 
+                          alt="" 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : autoKey ? (
+                        <RenderHomelabIcon iconKey={autoKey} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', background: 'rgba(0,229,200,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontSize: '12px', fontWeight: 'bold', borderRadius: '4px' }}>
+                          {(link.title || 'U').substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ color: 'var(--text-light)', fontWeight: 600, fontSize: '0.95rem' }}>
                         {link.title}
                         {link.category && (
                           <span style={{ marginLeft: '8px', fontSize: '10px', color: 'var(--neon-cyan)', background: 'rgba(0,229,200,0.15)', padding: '2px 6px', borderRadius: '10px' }}>
                             {link.category}
+                          </span>
+                        )}
+                        {link.ip && (
+                          <span style={{ marginLeft: '6px', fontSize: '10px', color: 'var(--neon-green)', background: 'rgba(0,255,102,0.1)', padding: '2px 6px', borderRadius: '6px', fontFamily: 'monospace' }}>
+                            {link.ip}
                           </span>
                         )}
                       </div>
