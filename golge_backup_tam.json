@@ -1,0 +1,375 @@
+{
+  "links": [
+    {
+      "id": "15",
+      "title": "GölgeSiber v3",
+      "url": "https://golgesiber.com",
+      "colour": "#00e5c8",
+      "appdescription": "GölgeSiber Ana Vitrini: Danışmanlık, CV/Portföy, 23 Siber Araç ve Teknik Blog.",
+      "category": "🌐 Web Servisleri",
+      "icon": "homelab:terminal",
+      "ip": "10.20.20.104",
+      "port": "443",
+      "notes": "CT 115 | Next.js 14 / React / Tailwind\nAna kurumsal siber güvenlik vitrini ve müşteri portföyü."
+    },
+    {
+      "id": "1780688833207",
+      "title": "Dalaman Airport Suites",
+      "url": "https://dalamanairportsuites.com",
+      "colour": "#00a3e0",
+      "appdescription": "Casa Turka Süitleri Doğrudan Rezervasyon Sitesi ve WhatsApp Rezervasyon Botu.",
+      "category": "🌐 Web Servisleri",
+      "icon": "/icons/fetch-1780688827114.png",
+      "ip": "10.20.20.116",
+      "port": "443",
+      "notes": "CT 116 | Python FastAPI / HTML5 / JS\nCasa Turka süit rezervasyon motoru ve komisyonsuz doğrudan rezervasyon."
+    },
+    {
+      "id": "1",
+      "title": "Gölge Kitabevi",
+      "url": "https://golgekitabevi.com",
+      "colour": "#e57000",
+      "appdescription": "Çanakkale sahaf ve ikinci el nadir kitap e-ticaret sitesi.",
+      "category": "🌐 Web Servisleri",
+      "icon": "/icons/fetch-1779624501767.png",
+      "ip": "10.20.20.113",
+      "port": "443",
+      "notes": "CT 113 | WordPress / WooCommerce / PHP\nOnline sahaf e-ticaret platformu ve kitap kataloğu."
+    },
+    {
+      "id": "ct-104",
+      "title": "NPMplus (WAF Proxy)",
+      "url": "http://10.20.20.104:81",
+      "colour": "#009639",
+      "appdescription": "Yeni Nesil WAF Proxy: CrowdSec IPS ve ModSecurity korumalı ters vekil.",
+      "category": "🌐 Web Servisleri",
+      "icon": "homelab:nginx",
+      "ip": "10.20.20.104",
+      "port": "81",
+      "notes": "CT 104 | NPMplus WAF Proxy\nCrowdSec IPS & ModSecurity (Geçiş için hazırlandı, beklemede)."
+    },
+    {
+      "id": "16",
+      "title": "Nginx Proxy Manager",
+      "url": "http://10.20.20.106:81",
+      "colour": "#009639",
+      "appdescription": "Ana Ters Vekil (Reverse Proxy) & SSL sertifikaları yönetim paneli.",
+      "category": "🌐 Web Servisleri",
+      "icon": "homelab:nginx",
+      "ip": "10.20.20.106",
+      "port": "81",
+      "notes": "CT 106 | Nginx Proxy Manager\nTüm alan adlarının SSL sertifikalarını ve yönlendirmelerini yöneten panel."
+    },
+    {
+      "id": "1781271047511",
+      "title": "Sahaf Burada",
+      "url": "https://sahafburada.d8el.dedyn.io/",
+      "colour": "#8892b0",
+      "appdescription": "Eski Sahafburada altyapısı (Arşiv).",
+      "category": "🌐 Web Servisleri",
+      "icon": "homelab:database",
+      "ip": "DHCP",
+      "port": "",
+      "notes": "CT 105 | Arşiv amaçlı durduruldu."
+    },
+    {
+      "id": "10",
+      "title": "Nextcloud Hub",
+      "url": "https://nc.golgesiber.com",
+      "colour": "#0082c9",
+      "appdescription": "Kurumsal bulut depolama, şirket hafıza merkezi ve Collectives dokümanları.",
+      "category": "☁️ Bulut & Depolama",
+      "icon": "homelab:nextcloud",
+      "ip": "10.30.30.103",
+      "port": "443",
+      "notes": "VM 103 | Nextcloud Hub / PHP / MySQL\nŞirket içi belgeler, hafıza merkezi, müşteri proje dosyaları ve Collectives."
+    },
+    {
+      "id": "2",
+      "title": "Matomo Analitik",
+      "url": "https://matomo.golgesiber.com",
+      "colour": "#f46800",
+      "appdescription": "Gizlilik odaklı web analitik, ısı haritası ve AI MCP API motoru.",
+      "category": "☁️ Bulut & Depolama",
+      "icon": "homelab:grafana",
+      "ip": "10.30.30.106",
+      "port": "443",
+      "notes": "CT 114 | Matomo On-Premise / PHP\nTüm sitelerin (GolgeSiber, Dalaman, Kitabevi) gizlilik odaklı ziyaretçi trafiği."
+    },
+    {
+      "id": "ct-100",
+      "title": "OnlyOffice Portal",
+      "url": "http://10.30.30.108",
+      "colour": "#03a9f4",
+      "appdescription": "Nextcloud canlı Word, Excel, PowerPoint belge düzenleme motoru.",
+      "category": "☁️ Bulut & Depolama",
+      "icon": "homelab:terminal",
+      "ip": "10.30.30.108",
+      "port": "80",
+      "notes": "CT 100 | OnlyOffice Document Server\nNextcloud içinde tarayıcıda canlı düzenleme motoru. Gece RAM tasarrufu için uyur."
+    },
+    {
+      "id": "8",
+      "title": "OPNsense Firewall",
+      "url": "https://10.50.50.1:8443",
+      "colour": "#d94f00",
+      "appdescription": "Veri merkezinin çekirdek güvenlik duvarı, VLAN, DHCP ve yönlendirici GUI.",
+      "category": "🛡️ Güvenlik & Ağ",
+      "icon": "homelab:opnsense",
+      "ip": "10.50.50.1",
+      "port": "8443",
+      "notes": "VM 101 | OPNsense Core Firewall & Router\nVLAN 50 / Yönetim Ağı üzerinden web GUI."
+    },
+    {
+      "id": "18",
+      "title": "AdGuard Home",
+      "url": "http://10.40.40.109:3000",
+      "colour": "#66b22e",
+      "appdescription": "Ağ geneli DNS seviyesinde reklam, zararlı yazılım ve tehdit engelleyici.",
+      "category": "🛡️ Güvenlik & Ağ",
+      "icon": "homelab:adguard",
+      "ip": "10.40.40.109",
+      "port": "3000",
+      "notes": "CT 109 | AdGuard Home Web Panel (:3000) & DNS (:53)\nTüm cihazların DNS sorgularını filtreler, zararlı siteleri keser."
+    },
+    {
+      "id": "6",
+      "title": "UniFi Controller",
+      "url": "https://10.50.50.104:11443",
+      "colour": "#2078bb",
+      "appdescription": "UniFi U6-Pro Access Point kontrolcüsü.",
+      "category": "🛡️ Güvenlik & Ağ",
+      "icon": "homelab:tailscale",
+      "ip": "10.10.10.107",
+      "port": "11443",
+      "notes": "CT 107 | UniFi Access Point (U6-Pro) kontrolcüsü (RAM tasarrufu için durduruldu)."
+    },
+    {
+      "id": "7",
+      "title": "Proxmox VE (pvenew)",
+      "url": "https://192.168.1.11:8006/",
+      "colour": "#e57000",
+      "appdescription": "Ana sanallaştırma hipervizörü (pvenew). Tüm VM ve LXC'lerin barındığı ana sunucu.",
+      "category": "📊 İzleme & Yönetim",
+      "icon": "homelab:proxmox",
+      "ip": "192.168.1.11",
+      "port": "8006",
+      "notes": "Proxmox VE 8.x Host (pvenew)\nTüm sanal makineler ve konteynerler burada barınır."
+    },
+    {
+      "id": "11",
+      "title": "PBS (Backup Server)",
+      "url": "https://10.10.10.102:8007/",
+      "colour": "#e57000",
+      "appdescription": "Tüm VM ve LXC'lerin 30x dedup tekilleştirilmiş yedekleme sunucusu.",
+      "category": "📊 İzleme & Yönetim",
+      "icon": "homelab:proxmox",
+      "ip": "10.10.10.102",
+      "port": "8007",
+      "notes": "VM 102 | Proxmox Backup Server (:8007)\nSıkıştırılmış ve tekilleştirilmiş anlık yedekleme."
+    },
+    {
+      "id": "13",
+      "title": "Uptime Kuma (NOC)",
+      "url": "http://10.10.10.110:3001",
+      "colour": "#5cd85a",
+      "appdescription": "Siteleri ve sunucuları 7/24 pingleyip Telegram alarmı atan gözetleme nöbetçisi.",
+      "category": "📊 İzleme & Yönetim",
+      "icon": "homelab:uptime_kuma",
+      "ip": "10.10.10.110",
+      "port": "3001",
+      "notes": "CT 110 | Uptime Kuma Yönetim Paneli (:3001)\nTüm sunucuları izleyen ve kesintide alarm gönderen sistem."
+    },
+    {
+      "id": "ct-110-status",
+      "title": "Canlı Sistem Durumu",
+      "url": "https://status.golgesiber.com",
+      "colour": "#5cd85a",
+      "appdescription": "Tüm sunucuların ve web sitelerinin anlık açık/kapalı durumunu halka açık gösteren sayfa.",
+      "category": "📊 İzleme & Yönetim",
+      "icon": "homelab:uptime_kuma",
+      "ip": "10.10.10.110",
+      "port": "443",
+      "notes": "CT 110 | status.golgesiber.com Halka Açık Durum Portalı"
+    },
+    {
+      "id": "ct-108",
+      "title": "Gölge Dashboard",
+      "url": "http://10.10.10.101",
+      "colour": "#00e5c8",
+      "appdescription": "Veri merkezi operasyonel yönetim, hızlı erişim ve izleme paneli.",
+      "category": "📊 İzleme & Yönetim",
+      "icon": "homelab:terminal",
+      "ip": "10.10.10.101",
+      "port": "80",
+      "notes": "CT 108 | golgesiber-dashboard (Ubuntu 24.04 LTS)\nOperasyonel Yönetim ve Navigasyon Paneli."
+    },
+    {
+      "id": "9",
+      "title": "Switch Yönetimi",
+      "url": "http://10.10.10.239/",
+      "colour": "#fafbfc",
+      "appdescription": "Yönetilebilir Ağ Anahtarı (Switch) Web Arayüzü.",
+      "category": "📊 İzleme & Yönetim",
+      "icon": "homelab:terminal",
+      "ip": "10.10.10.239",
+      "port": "80",
+      "notes": "VLAN 10 | Ağ Anahtarı Yönetimi"
+    },
+    {
+      "id": "17",
+      "title": "Cloudflare",
+      "url": "https://cloudflare.com",
+      "colour": "#f38020",
+      "appdescription": "DNS, CDN, WAF ve Cloudflare Tunnels Yönetimi.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "homelab:cloudflare",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    },
+    {
+      "id": "3",
+      "title": "Proxmox Scripts",
+      "url": "https://community-scripts.org/",
+      "colour": "#e57000",
+      "appdescription": "Proxmox VE LXC ve VM kurulum otomasyon betikleri.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "homelab:proxmox",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    },
+    {
+      "id": "19",
+      "title": "Hız Testi",
+      "url": "https://www.speedtest.net/",
+      "colour": "#161b1f",
+      "appdescription": "İnternet bant genişliği ve gecikme testi.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "/icons/fetch-1779624834465.png",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    },
+    {
+      "id": "1779735392274",
+      "title": "GitHub Copilot",
+      "url": "https://github.com/copilot/",
+      "colour": "#161b1f",
+      "appdescription": "Yapay zeka kodlama asistanı.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "/icons/fetch-1779735374450.png",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    },
+    {
+      "id": "1779722141452",
+      "title": "Openrouter AI",
+      "url": "https://openrouter.ai/chat",
+      "colour": "#161b1f",
+      "appdescription": "Çoklu model yapay zeka arayüzü.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "/icons/fetch-1779722138417.png",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    },
+    {
+      "id": "1779722170392",
+      "title": "Z AI",
+      "url": "https://z.ai/chat",
+      "colour": "#161b1f",
+      "appdescription": "Yapay zeka sohbet platformu.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "/icons/fetch-1779722167752.png",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    },
+    {
+      "id": "1780138445925",
+      "title": "Suno AI",
+      "url": "https://suno.com/",
+      "colour": "#161b1f",
+      "appdescription": "Yapay zeka müzik üretme platformu.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "/icons/fetch-1780138442622.png",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    },
+    {
+      "id": "1780417744425",
+      "title": "Squoosh FotoEdit",
+      "url": "https://squoosh.app/",
+      "colour": "#161b1f",
+      "appdescription": "Web için görsel sıkıştırma ve dönüştürme aracı.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "/icons/fetch-1780417733002.png",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    },
+    {
+      "id": "4",
+      "title": "Famelack TV & Radio",
+      "url": "https://famelack.com/tv/tr",
+      "colour": "#161b1f",
+      "appdescription": "Canlı TV ve Çevrimiçi Radyo kanalları.",
+      "category": "🧰 Araçlar & AI",
+      "icon": "/icons/fetch-1779625422588.png",
+      "ip": "",
+      "port": "",
+      "notes": ""
+    }
+  ],
+  "preferences": {
+    "theme": "dark",
+    "dynamicBackground": true,
+    "hackerQuotes": true
+  },
+  "tags": [
+    {
+      "id": "tag-1",
+      "title": "🌐 Web Servisleri",
+      "colour": "#00e5c8"
+    },
+    {
+      "id": "tag-2",
+      "title": "☁️ Bulut & Depolama",
+      "colour": "#0082c9"
+    },
+    {
+      "id": "tag-3",
+      "title": "🛡️ Güvenlik & Ağ",
+      "colour": "#ff4444"
+    },
+    {
+      "id": "tag-4",
+      "title": "📊 İzleme & Yönetim",
+      "colour": "#00ff66"
+    },
+    {
+      "id": "tag-5",
+      "title": "🧰 Araçlar & AI",
+      "colour": "#aa5cc3"
+    }
+  ],
+  "heatmap": {
+    "startDate": "2026-06-12T12:46:11.045Z",
+    "history": {
+      "1": { "2026-11-18": 1 },
+      "2": { "2026-11-18": 1 },
+      "7": { "2026-11-18": 2 },
+      "8": { "2026-11-18": 2 },
+      "9": { "2026-11-18": 1 },
+      "11": { "2026-11-18": 1 },
+      "13": { "2026-11-18": 2 },
+      "15": { "2026-11-18": 1 },
+      "16": { "2026-11-18": 1 },
+      "18": { "2026-11-18": 3 }
+    }
+  }
+}

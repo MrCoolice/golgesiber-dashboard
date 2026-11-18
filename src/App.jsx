@@ -6,7 +6,7 @@ import Admin from './pages/Admin';
 import Login from './pages/Login';
 import SpotlightSearch from './components/SpotlightSearch';
 import DynamicBackground from './components/DynamicBackground';
-import HackerQuotes from './components/HackerQuotes';
+import CyberStatusBadge from './components/CyberStatusBadge';
 import './index.css';
 
 const Sidebar = ({ handleLogout, userRole }) => {
@@ -135,7 +135,7 @@ const App = () => {
   return (
     <Router>
       <DynamicBackground preferences={preferences} />
-      <HackerQuotes preferences={preferences} />
+      <CyberStatusBadge linksCount={links.length} />
       <SpotlightSearch 
         isOpen={isSpotlightOpen} 
         onClose={() => setIsSpotlightOpen(false)} 

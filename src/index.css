@@ -93,4 +93,9 @@ body {
     padding-top: 0 !important;
     margin-bottom: 0 !important;
   }
+  .cyber-status-badge {
+    top: 10px !important;
+    right: 10px !important;
+    padding: 4px 10px !important;
+  }
 }
