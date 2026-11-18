@@ -1,26 +1,31 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Network, Search, ExternalLink, Copy, Check, Server, Shield, Layers } from 'lucide-react';
+import { X, Network, Search, ExternalLink, Copy, Check, Server, ChevronDown, ChevronUp, Shield, Hash } from 'lucide-react';
 import { RenderHomelabIcon } from '../utils/homelabIcons';
 
 const SUBNETS = [
-  { id: 'vlan10', name: 'VLAN 10 - MGMT (Yönetim & İzleme)', cidr: '10.10.10.0/24', prefix: '10.10.10.', color: '#00E5FF' },
-  { id: 'vlan20', name: 'VLAN 20 - WEB (Web & Dış Servisler)', cidr: '10.20.20.0/24', prefix: '10.20.20.', color: '#22C55E' },
-  { id: 'vlan30', name: 'VLAN 30 - CLOUD (Bulut & Veri)', cidr: '10.30.30.0/24', prefix: '10.30.30.', color: '#3B82F6' },
-  { id: 'vlan40', name: 'VLAN 40 - SEC (Güvenlik & DNS)', cidr: '10.40.40.0/24', prefix: '10.40.40.', color: '#A855F7' },
-  { id: 'vlan50', name: 'VLAN 50 - CORE (OPNsense Güvenlik Duvarı)', cidr: '10.50.50.0/24', prefix: '10.50.50.', color: '#EF4444' },
-  { id: 'lan', name: 'LAN - FİZİKSEL (Ev & Ana Ağ)', cidr: '192.168.1.0/24', prefix: '192.168.1.', color: '#F59E0B' }
+  { id: 'vlan10', name: 'VLAN 10 - MGMT', desc: 'Yönetim, İzleme & Yedekleme', cidr: '10.10.10.0/24', prefix: '10.10.10.', color: '#00E5FF' },
+  { id: 'vlan20', name: 'VLAN 20 - WEB', desc: 'Web Siteleri & Dışarı Açık DMZ Servisleri', cidr: '10.20.20.0/24', prefix: '10.20.20.', color: '#22C55E' },
+  { id: 'vlan30', name: 'VLAN 30 - CLOUD', desc: 'Bulut Depolama, Dosya & Web Analitik', cidr: '10.30.30.0/24', prefix: '10.30.30.', color: '#3B82F6' },
+  { id: 'vlan40', name: 'VLAN 40 - SEC', desc: 'Ağ Güvenliği, Reklam & Tehdit DNS (AdGuard)', cidr: '10.40.40.0/24', prefix: '10.40.40.', color: '#A855F7' },
+  { id: 'vlan50', name: 'VLAN 50 - CORE', desc: 'OPNsense Çekirdek Güvenlik Duvarı & Yönlendirici', cidr: '10.50.50.0/24', prefix: '10.50.50.', color: '#EF4444' },
+  { id: 'lan', name: 'LAN - FİZİKSEL', desc: 'Ev / Fiziksel Modem Ağı', cidr: '192.168.1.0/24', prefix: '192.168.1.', color: '#F59E0B' }
 ];
 
 const MiniIpamModal = ({ isOpen, onClose, links = [] }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubnet, setSelectedSubnet] = useState('all');
   const [copiedIp, setCopiedIp] = useState(null);
+  const [collapsedSubnets, setCollapsedSubnets] = useState({});
 
   const handleCopy = (ip) => {
     navigator.clipboard.writeText(ip);
     setCopiedIp(ip);
     setTimeout(() => setCopiedIp(null), 1800);
+  };
+
+  const toggleCollapse = (id) => {
+    setCollapsedSubnets(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   // Group services by subnet
@@ -38,13 +43,14 @@ const MiniIpamModal = ({ isOpen, onClose, links = [] }) => {
       };
     });
 
-    // Also collect unassigned or other IPs
+    // Collect other/custom IPs
     const allKnownPrefixes = SUBNETS.map(s => s.prefix);
     const others = links.filter(l => l.ip && !allKnownPrefixes.some(p => l.ip.startsWith(p)));
     if (others.length > 0) {
       data.push({
         id: 'others',
-        name: 'DİĞER / HARİCİ IP ADRESLERİ',
+        name: 'DİĞER / HARİCİ',
+        desc: 'Farklı IP aralıkları veya dinamik adresler',
         cidr: 'Custom',
         prefix: '',
         color: '#94A3B8',
@@ -98,24 +104,24 @@ const MiniIpamModal = ({ isOpen, onClose, links = [] }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '20px'
+          padding: '24px'
         }}
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+          exit={{ opacity: 0, scale: 0.96 }}
           transition={{ duration: 0.2 }}
           onClick={e => e.stopPropagation()}
           style={{
             width: '100%',
-            maxWidth: '1000px',
-            maxHeight: '90vh',
+            maxWidth: '1240px',
+            height: '88vh',
             backgroundColor: 'rgba(6, 13, 31, 0.98)',
             border: '1px solid var(--border-cyan)',
             borderRadius: '16px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 229, 200, 0.15)',
+            boxShadow: '0 25px 70px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 229, 200, 0.15)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden'
@@ -123,35 +129,37 @@ const MiniIpamModal = ({ isOpen, onClose, links = [] }) => {
         >
           {/* Header */}
           <div style={{
-            padding: '20px 24px',
+            padding: '22px 30px',
             borderBottom: '1px solid rgba(0, 229, 200, 0.2)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             background: 'rgba(0, 229, 200, 0.03)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(0, 229, 200, 0.1)',
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: 'rgba(0, 229, 200, 0.12)',
                 border: '1px solid var(--neon-cyan)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Network size={22} color="var(--neon-cyan)" />
+                <Network size={24} color="var(--neon-cyan)" />
               </div>
               <div>
-                <h2 style={{ margin: 0, color: 'var(--text-light)', fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  SUBNET IP ADRES DEFTERİ (MİNİ IPAM)
-                  <span style={{ fontSize: '11px', color: 'var(--neon-green)', background: 'rgba(0,255,102,0.1)', border: '1px solid var(--neon-green)', padding: '2px 8px', borderRadius: '12px' }}>
-                    {totalAssignedCount} IP Kayıtlı
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <h2 style={{ margin: 0, color: 'var(--text-light)', fontSize: '1.35rem', fontWeight: 'bold' }}>
+                    SUBNET IP ADRES DEFTERİ (MİNİ IPAM)
+                  </h2>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neon-green)', background: 'rgba(0,255,102,0.12)', border: '1px solid var(--neon-green)', padding: '2px 10px', borderRadius: '12px' }}>
+                    {totalAssignedCount} IP Atanmış
                   </span>
-                </h2>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Tüm Sanal Makine (VM) ve Konteynerlerin (LXC) VLAN bazlı güncel IP haritası
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Proxmox homelab veri merkezinizdeki tüm VM ve LXC'lerin VLAN bazlı statik IP dağılımı
                 </div>
               </div>
             </div>
@@ -159,57 +167,67 @@ const MiniIpamModal = ({ isOpen, onClose, links = [] }) => {
             <button
               onClick={onClose}
               style={{
-                background: 'transparent',
-                border: 'none',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
                 color: 'var(--text-muted)',
                 cursor: 'pointer',
                 padding: '8px',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease'
               }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--neon-red)'; e.currentTarget.style.borderColor = 'var(--neon-red)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               title="Kapat"
             >
-              <X size={22} />
+              <X size={20} />
             </button>
           </div>
 
           {/* Search & Subnet Filter Tabs */}
-          <div style={{ padding: '16px 24px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-              <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <div style={{ padding: '16px 30px', background: 'rgba(0,0,0,0.35)', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+              <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
-                placeholder="IP, makine adı veya port ara (Örn: 10.20., 81, Dalaman)..."
+                placeholder="IP, makine adı, port veya VLAN ara (Örn: 10.20., 81, PBS, OPNsense)..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '9px 12px 9px 36px',
+                  padding: '10px 14px 10px 40px',
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(0, 229, 200, 0.25)',
                   borderRadius: '8px',
                   color: 'var(--text-light)',
                   fontSize: '13px',
-                  outline: 'none'
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease'
                 }}
+                onFocus={e => e.target.style.borderColor = 'var(--neon-cyan)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(0, 229, 200, 0.25)'}
               />
             </div>
 
             {/* Subnet Quick Pills */}
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 onClick={() => setSelectedSubnet('all')}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  background: selectedSubnet === 'all' ? 'rgba(0, 229, 200, 0.2)' : 'rgba(255,255,255,0.05)',
+                  background: selectedSubnet === 'all' ? 'rgba(0, 229, 200, 0.2)' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${selectedSubnet === 'all' ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.1)'}`,
-                  color: selectedSubnet === 'all' ? 'var(--neon-cyan)' : 'var(--text-muted)'
+                  color: selectedSubnet === 'all' ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                  transition: 'all 0.2s ease'
                 }}
               >
-                TÜMÜ ({totalAssignedCount})
+                TÜM VLAN'LAR ({totalAssignedCount})
               </button>
               {SUBNETS.map(s => {
                 const count = links.filter(l => l.ip && l.ip.startsWith(s.prefix)).length;
@@ -219,151 +237,262 @@ const MiniIpamModal = ({ isOpen, onClose, links = [] }) => {
                     key={s.id}
                     onClick={() => setSelectedSubnet(s.id)}
                     style={{
-                      padding: '6px 10px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
                       fontWeight: '600',
                       cursor: 'pointer',
-                      background: isSel ? `${s.color}25` : 'rgba(255,255,255,0.05)',
+                      background: isSel ? `${s.color}25` : 'rgba(255,255,255,0.04)',
                       border: `1px solid ${isSel ? s.color : 'rgba(255,255,255,0.1)'}`,
-                      color: isSel ? s.color : 'var(--text-muted)'
+                      color: isSel ? s.color : 'var(--text-muted)',
+                      transition: 'all 0.2s ease'
                     }}
                   >
-                    {s.cidr.split('/')[0]} ({count})
+                    {s.name.split(' - ')[0]} ({count})
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Subnet Tables Content */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Subnet Lists Content */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 30px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {filteredSubnets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                Aradığınız kriterlere uygun IP veya servis bulunamadı.
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+                Aradığınız kriterlere uygun IP veya makine bulunamadı.
               </div>
             ) : (
-              filteredSubnets.map(sub => (
-                <div 
-                  key={sub.id} 
-                  style={{
-                    background: 'rgba(0, 0, 0, 0.4)',
-                    border: `1px solid ${sub.color}35`,
-                    borderRadius: '12px',
-                    overflow: 'hidden'
-                  }}
-                >
-                  {/* Subnet Header Bar */}
-                  <div style={{
-                    padding: '12px 18px',
-                    background: `linear-gradient(90deg, ${sub.color}15, transparent)`,
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: sub.color, boxShadow: `0 0 8px ${sub.color}` }} />
-                      <span style={{ color: 'var(--text-light)', fontWeight: 'bold', fontSize: '13px' }}>
-                        {sub.name}
-                      </span>
-                      <span style={{ fontFamily: 'monospace', color: sub.color, fontSize: '12px', background: 'rgba(0,0,0,0.5)', padding: '2px 8px', borderRadius: '4px' }}>
-                        {sub.cidr}
-                      </span>
-                    </div>
+              filteredSubnets.map(sub => {
+                const isCollapsed = collapsedSubnets[sub.id];
 
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      <b>{sub.assigned.length}</b> atanmış IP
-                    </div>
-                  </div>
-
-                  {/* IP Items Table / Grid */}
-                  {sub.assigned.length === 0 ? (
-                    <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>
-                      Bu subnet için tanımlı bir servis kaydı bulunmuyor.
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '10px', padding: '14px' }}>
-                      {sub.assigned.map(item => {
-                        const isCopied = copiedIp === item.ip;
-                        const isHomelab = item.icon && item.icon.startsWith('homelab:');
-                        const homelabKey = isHomelab ? item.icon.replace('homelab:', '') : null;
-                        const targetUrl = (item.url && !item.url.startsWith('http')) ? `http://${item.url}` : item.url;
-
-                        return (
-                          <div
-                            key={item.id}
-                            style={{
-                              background: 'rgba(255,255,255,0.03)',
-                              border: '1px solid rgba(255,255,255,0.08)',
-                              borderRadius: '8px',
-                              padding: '10px 12px',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.borderColor = sub.color;
-                              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                              e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                              <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                {isHomelab ? (
-                                  <RenderHomelabIcon iconKey={homelabKey} size={16} />
-                                ) : (
-                                  <Server size={14} color={sub.color} />
-                                )}
-                              </div>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ color: 'var(--text-light)', fontSize: '13px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {item.title}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontFamily: 'monospace' }}>
-                                  <span style={{ color: sub.color, fontWeight: 'bold' }}>{item.ip}</span>
-                                  {item.port && <span style={{ color: 'var(--text-muted)' }}>:{item.port}</span>}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <button
-                                onClick={() => handleCopy(item.ip)}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: isCopied ? 'var(--neon-green)' : 'var(--text-muted)',
-                                  cursor: 'pointer',
-                                  padding: '4px'
-                                }}
-                                title="IP'yi Kopyala"
-                              >
-                                {isCopied ? <Check size={14} /> : <Copy size={14} />}
-                              </button>
-                              {targetUrl && (
-                                <a
-                                  href={targetUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ color: 'var(--text-muted)', padding: '4px', display: 'flex', alignItems: 'center' }}
-                                  title="Yeni Sekmede Aç"
-                                >
-                                  <ExternalLink size={14} />
-                                </a>
-                              )}
-                            </div>
+                return (
+                  <div 
+                    key={sub.id} 
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.45)',
+                      border: `1px solid ${sub.color}35`,
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)'
+                    }}
+                  >
+                    {/* Subnet Header Bar (Clickable to Collapse/Expand) */}
+                    <div 
+                      onClick={() => toggleCollapse(sub.id)}
+                      style={{
+                        padding: '14px 20px',
+                        background: `linear-gradient(90deg, ${sub.color}18, rgba(0,0,0,0.3))`,
+                        borderBottom: isCollapsed ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: sub.color, boxShadow: `0 0 10px ${sub.color}` }} />
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ color: 'var(--text-light)', fontWeight: 'bold', fontSize: '14px' }}>
+                              {sub.name}
+                            </span>
+                            <span style={{ fontFamily: 'monospace', color: sub.color, fontSize: '12px', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: '4px', border: `1px solid ${sub.color}40` }}>
+                              {sub.cidr}
+                            </span>
                           </div>
-                        );
-                      })}
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            {sub.desc}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-light)', background: 'rgba(255,255,255,0.06)', padding: '4px 10px', borderRadius: '6px' }}>
+                          <b>{sub.assigned.length}</b> Atanmış IP
+                        </span>
+                        {isCollapsed ? <ChevronDown size={18} color="var(--text-muted)" /> : <ChevronUp size={18} color="var(--text-muted)" />}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))
+
+                    {/* Subnet Table Content */}
+                    {!isCollapsed && (
+                      <div style={{ padding: '16px 20px' }}>
+                        {sub.assigned.length === 0 ? (
+                          <div style={{ padding: '14px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>
+                            Bu subnet için henüz bir servis kaydı atanmamış.
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {sub.assigned.map(item => {
+                              const isCopied = copiedIp === item.ip;
+                              const isHomelab = item.icon && item.icon.startsWith('homelab:');
+                              const homelabKey = isHomelab ? item.icon.replace('homelab:', '') : null;
+                              const targetUrl = (item.url && !item.url.startsWith('http')) ? `http://${item.url}` : item.url;
+
+                              return (
+                                <div
+                                  key={item.id}
+                                  style={{
+                                    background: 'rgba(255,255,255,0.025)',
+                                    border: '1px solid rgba(255,255,255,0.07)',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    gap: '16px',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                  onMouseEnter={e => {
+                                    e.currentTarget.style.borderColor = sub.color;
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                  }}
+                                  onMouseLeave={e => {
+                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.025)';
+                                  }}
+                                >
+                                  {/* Left: Service Info & Icon */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                                    <div style={{ 
+                                      width: '36px', 
+                                      height: '36px', 
+                                      borderRadius: '8px', 
+                                      background: 'rgba(0,0,0,0.5)', 
+                                      border: '1px solid rgba(255,255,255,0.1)',
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      justifyContent: 'center', 
+                                      flexShrink: 0,
+                                      padding: '6px'
+                                    }}>
+                                      {isHomelab ? (
+                                        <RenderHomelabIcon iconKey={homelabKey} size={20} />
+                                      ) : item.icon ? (
+                                        <img 
+                                          src={item.icon.startsWith('http') ? item.icon : `http://${window.location.hostname}:3001${item.icon.startsWith('/') ? '' : '/'}${item.icon}`}
+                                          alt=""
+                                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                          onError={e => { e.target.style.display = 'none'; }}
+                                        />
+                                      ) : (
+                                        <Server size={18} color={sub.color} />
+                                      )}
+                                    </div>
+
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <span style={{ color: 'var(--text-light)', fontSize: '14px', fontWeight: 'bold' }}>
+                                          {item.title}
+                                        </span>
+                                        {item.category && (
+                                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '4px' }}>
+                                            {item.category}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {item.appdescription && (
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                          {item.appdescription}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Middle: Prominent IP & Port Badges */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                                    <div style={{
+                                      fontFamily: 'monospace',
+                                      fontSize: '13px',
+                                      fontWeight: 'bold',
+                                      color: sub.color,
+                                      background: 'rgba(0,0,0,0.5)',
+                                      border: `1px solid ${sub.color}45`,
+                                      padding: '4px 12px',
+                                      borderRadius: '6px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px'
+                                    }}>
+                                      <span>{item.ip}</span>
+                                    </div>
+
+                                    {item.port && (
+                                      <div style={{
+                                        fontFamily: 'monospace',
+                                        fontSize: '12px',
+                                        color: 'var(--text-light)',
+                                        background: 'rgba(255,255,255,0.06)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px'
+                                      }}>
+                                        :{item.port}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Right: Copy & Visit Actions */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                    <button
+                                      onClick={() => handleCopy(item.ip)}
+                                      style={{
+                                        background: isCopied ? 'rgba(0,255,102,0.15)' : 'rgba(255,255,255,0.05)',
+                                        border: `1px solid ${isCopied ? 'var(--neon-green)' : 'rgba(255,255,255,0.12)'}`,
+                                        color: isCopied ? 'var(--neon-green)' : 'var(--text-muted)',
+                                        borderRadius: '6px',
+                                        padding: '6px 10px',
+                                        fontSize: '11px',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                      title="IP Adresini Kopyala"
+                                    >
+                                      {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                                      <span>{isCopied ? 'Kopyalandı' : 'Kopyala'}</span>
+                                    </button>
+
+                                    {targetUrl && (
+                                      <a
+                                        href={targetUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                          background: 'rgba(0, 229, 200, 0.08)',
+                                          border: '1px solid rgba(0, 229, 200, 0.25)',
+                                          color: 'var(--neon-cyan)',
+                                          borderRadius: '6px',
+                                          padding: '6px 10px',
+                                          fontSize: '11px',
+                                          fontWeight: '600',
+                                          textDecoration: 'none',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          transition: 'all 0.2s ease'
+                                        }}
+                                        title="Yeni Sekmede Aç"
+                                      >
+                                        <ExternalLink size={14} />
+                                        <span>Aç</span>
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </motion.div>

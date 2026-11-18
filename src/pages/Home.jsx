@@ -365,12 +365,20 @@ const Home = () => {
   };
 
   const handleOpenAllInGroup = (catLinks) => {
-    if (window.confirm(`Bu gruptaki ${catLinks.length} servisin tümü yeni sekmelerde açılsın mı?`)) {
-      catLinks.forEach(link => {
-        const targetUrl = (link.url && !link.url.startsWith('http')) ? `http://${link.url}` : link.url;
-        window.open(targetUrl, '_blank');
-        pingHeatmap(link.id);
-      });
+    let blocked = false;
+    catLinks.forEach((link, idx) => {
+      const targetUrl = (link.url && !link.url.startsWith('http')) ? `http://${link.url}` : link.url;
+      try {
+        const win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        if (!win && idx > 0) blocked = true;
+      } catch (e) {
+        blocked = true;
+      }
+      pingHeatmap(link.id);
+    });
+
+    if (blocked) {
+      alert("Tarayıcınız birden fazla sekme açılmasını engelledi. Lütfen adres çubuğunun en sağındaki 'Pop-up engellendi' 🚫 simgesine tıklayıp '10.10.10.101 için pop-up'lara her zaman izin ver' seçeneğini işaretleyin.");
     }
   };
 
